@@ -13,9 +13,9 @@ stop_repository = int(sys.argv[2])
 
 # File paths for the files used in this script
 base_path = '/home/tschorle/DockerHub'
-names_path = base_path + '/names.txt'
-tags_path = base_path + f'/tags{start_repository}-{stop_repository}.json'
-log_path = base_path + f'/tags{start_repository}-{stop_repository}.log'
+names_path = base_path + '/data/names.txt'
+tags_path = base_path + f'/data/tags{start_repository}-{stop_repository}.json'
+log_path = base_path + f'/logs/tags{start_repository}-{stop_repository}.log'
 
 # Set up logger
 log.basicConfig(filename=log_path,
