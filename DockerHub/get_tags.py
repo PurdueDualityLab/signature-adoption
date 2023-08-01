@@ -1,8 +1,16 @@
+#!/usr/bin/env python3
+
+'''get_tags.py: This script gets the tags for each repository on DockerHub.
+'''
+
 import requests
 import json
 import sys
 import logging as log
 from datetime import datetime
+
+__author__ = 'Taylor R. Schorlemmer'
+__email__ = 'tschorle@purdue.edu'
 
 # Base url for dockerhub api
 docker = 'https://hub.docker.com/v2'
