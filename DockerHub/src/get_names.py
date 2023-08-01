@@ -20,7 +20,7 @@ ecosystems = 'https://packages.ecosyste.ms/api/v1'
 # File paths for the files used in this script
 base_path = '..'
 names_path = base_path + '/data/names.txt'
-log_path = base_path + f'/logs/names.log'
+log_path = base_path + f'/logs/get_names.log'
 
 # Ensure the log folder exists
 if not os.path.exists(base_path + '/logs'):
@@ -33,9 +33,9 @@ if not os.path.exists(base_path + '/data'):
     log.info(f'Created data folder.')
 
 # Set up logger
-log_level = log.DEBUG if os.environ.get('DEBUG') else log.INFO
+log_level = log.DEBUG if __debug__ else log.INFO
 log.basicConfig(filename=log_path,
-                    filemode='w',
+                    filemode='a',
                     level=log_level,
                     format='%(asctime)s|%(levelname)s|%(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -92,7 +92,7 @@ def get_official_dockerhub():
     while next_page:
 
         # Get the page of results
-        response = requests.get(docker + f'/repositories/official/?page={page}&page_size=100')
+        response = requests.get(docker + f'/repositories/library/?page={page}&page_size=100')
 
         # Get all names from the page
         for result in response.json()['results']:

@@ -24,7 +24,7 @@ stop_repository = int(sys.argv[2])
 base_path = '..'
 names_path = base_path + '/data/names.txt'
 tags_path = base_path + f'/data/tags{start_repository}-{stop_repository}.json'
-log_path = base_path + f'/logs/tags{start_repository}-{stop_repository}.log'
+log_path = base_path + f'/logs/get_tags{start_repository}-{stop_repository}.log'
 
 # Ensure the log folder exists
 if not os.path.exists(base_path + '/logs'):
@@ -37,9 +37,9 @@ if not os.path.exists(base_path + '/data'):
     log.info(f'Created data folder.')
 
 # Set up logger
-log_level = log.DEBUG if os.environ.get('DEBUG') else log.INFO
+log_level = log.DEBUG if __debug__ else log.INFO
 log.basicConfig(filename=log_path,
-                    filemode='w',
+                    filemode='a',
                     level=log_level,
                     format='%(asctime)s|%(levelname)s|%(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
@@ -66,7 +66,7 @@ def get_tags(repository_name, page=1):
 
     repository_name: the name of the target repository
 
-    page: the page of results to fetch. Default is 1, going past the number of
+    page: start page of results to fetch. Default is 1, going past the number of
     pages available returns an error.
 
     returns: the list of tags for a given registry.
