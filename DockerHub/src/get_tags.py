@@ -6,6 +6,7 @@
 import requests
 import json
 import sys
+import os
 import logging as log
 from datetime import datetime
 
@@ -20,15 +21,26 @@ start_repository = int(sys.argv[1])
 stop_repository = int(sys.argv[2])
 
 # File paths for the files used in this script
-base_path = '/home/tschorle/DockerHub'
+base_path = '..'
 names_path = base_path + '/data/names.txt'
 tags_path = base_path + f'/data/tags{start_repository}-{stop_repository}.json'
 log_path = base_path + f'/logs/tags{start_repository}-{stop_repository}.log'
 
+# Ensure the log folder exists
+if not os.path.exists(base_path + '/logs'):
+    os.mkdir(base_path + '/logs')
+    log.info(f'Created logs folder.')
+
+# Ensure the data folder exists
+if not os.path.exists(base_path + '/data'):
+    os.mkdir(base_path + '/data')
+    log.info(f'Created data folder.')
+
 # Set up logger
+log_level = log.DEBUG if os.environ.get('DEBUG') else log.INFO
 log.basicConfig(filename=log_path,
                     filemode='w',
-                    level=log.DEBUG,
+                    level=log_level,
                     format='%(asctime)s|%(levelname)s|%(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 
