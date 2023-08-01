@@ -16,6 +16,11 @@ __email__ = 'tschorle@purdue.edu'
 # Base url for dockerhub api
 docker = 'https://hub.docker.com/v2'
 
+# Check to see if command line args are correct
+if len(sys.argv) != 3:
+    print('Usage: python get_tags.py <start_repository> <stop_repository>')
+    exit(-1)
+
 # Get the start and stop parameters from the command line args
 start_repository = int(sys.argv[1])
 stop_repository = int(sys.argv[2])
@@ -73,14 +78,13 @@ def get_tags(repository_name, page=1):
     """
 
 
-    log.info(f'Starting tag retrevial for {repository_name}. '
+    log.debug(f'Starting tag retrevial for {repository_name}. '
              f'Page {page}.')
 
     
     # Create a request for the dockerhub api
     tags_req = f'{docker}/repositories/{repository_name}/'\
                f'tags/?page_size=100&page={page}'
-    log.debug(f'Request: {tags_req}')
     
 
     # Get response from the api
@@ -96,9 +100,9 @@ def get_tags(repository_name, page=1):
         exit(-1)
 
     
-    # This means there is an error
+    # This means there might be an error
     if code != 200:
-        log.warning(f'Recieved status code {code}.')
+        log.warning(f'Recieved status code {code} for {repository_name}.')
         return None
 
     # If there are more results on the next page, continue to get results
@@ -109,9 +113,6 @@ def get_tags(repository_name, page=1):
     # End of tags, return all responses
     else:
         return response.json()['results']
-
-
-
 
 
 
@@ -131,12 +132,19 @@ with open(names_path, 'r', newline='') as name_file:
     log.info(f'Beginning to loop through the selected repositories.')
     for x in range(start_repository, stop_repository):
 
-        # Get next repo name
+        # Get next repo name and get tags for it
         repo_name = name_file.readline().strip()
         repo_tags = get_tags(repository_name=repo_name)
-        count_tags = len(repo_tags) if repo_tags != None else None
 
-        # Append the data to the list
+        # if repo_tags is None, then there was an problem - skip this repo
+        if repo_tags == None:
+            log.warning(f'Skipping {repo_name}.')
+            continue
+
+        # Get the number of tags
+        count_tags = len(repo_tags)
+
+        # Append the data to the json list
         tag_data.append({
             'name':repo_name,
             'count_tags':count_tags,
@@ -144,7 +152,7 @@ with open(names_path, 'r', newline='') as name_file:
         })
 
 # Open up the json file
-log.info(f'Opening {tags_path}.')
+log.info(f'Writing json to {tags_path}.')
 with open(tags_path, 'w') as tags_file:
 
     # Write data to file
