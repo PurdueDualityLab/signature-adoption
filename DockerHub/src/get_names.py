@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 '''get_names.py: This script gets the names of all repositories in docker hub.
 '''

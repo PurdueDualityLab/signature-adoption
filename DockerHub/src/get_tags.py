@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 '''get_tags.py: This script gets the tags for each repository on DockerHub.
 '''
