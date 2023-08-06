@@ -21,15 +21,20 @@ __email__ = 'tschorle@purdue.edu'
 
 
 # Dates for the query
-date_1 = '2015-08-11'
-date_2 = '2018-03-22'
-date_3 = '2022-10-26'
-date_4 = '2023-05-23'
-date_5 = '2023-08-04'
+dates = [
+    '2015-08-11',
+    '2018-03-22',
+    '2022-10-26',
+    '2023-05-23',
+    '2023-08-04']
 
 # File paths for the files used in this script
 base_path = '..'
-packages_path = base_path + '/data/packages.json'
+packages_paths = [
+    base_path + f'/data/packages_{dates[0]}_{dates[1]}.json',
+    base_path + f'/data/packages_{dates[1]}_{dates[2]}.json',
+    base_path + f'/data/packages_{dates[2]}_{dates[3]}.json',
+    base_path + f'/data/packages_{dates[3]}_{dates[4]}.json']
 log_path = base_path + f'/logs/get_packages.log'
 
 # Ensure the log folder exists
@@ -79,16 +84,11 @@ def get_packages(start_date, end_date):
     client = bigquery.Client()
 
     # Create the query
-    # query = (
-    #     'SELECT name, version, filename, python_version, blake2_256_digest' 
-    #     'FROM `bigquery-public-data.pypi.distribution_metadata`' 
-    #     f'WHERE upload_time > TIMESTAMP("{start_date} 00:00:00")' 
-    #     f'AND upload_time < TIMESTAMP("{end_date} 00:00:00")')
     query = (
-    'SELECT name FROM `bigquery-public-data.usa_names.usa_1910_2013` '
-    'WHERE state = "TX" '
-    'LIMIT 100')
-
+        'SELECT name, version, filename, python_version, blake2_256_digest, upload_time, download_url' 
+        'FROM `bigquery-public-data.pypi.distribution_metadata`' 
+        f'WHERE upload_time > TIMESTAMP("{start_date} 00:00:00")' 
+        f'AND upload_time < TIMESTAMP("{end_date} 00:00:00")')
 
     # Run the query
     query_job = client.query(query)
@@ -96,12 +96,17 @@ def get_packages(start_date, end_date):
     # Get the results
     results = query_job.result()
 
-    print (results)
+    return results
 
 
-get_packages(start_date=date_1, end_date=date_2)
+# Testing
+results = get_packages('2023-05-23', '2023-05-24')
 
+# Print first 10 rows
+for row in results:
+    print(row)
 
-    
-
-
+# Iterate through date ranges
+# for i in range(len(dates)-1):
+    # Get the packages
+    # results = get_packages(dates[i], dates[i+1])
