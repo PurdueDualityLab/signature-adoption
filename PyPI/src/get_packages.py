@@ -82,7 +82,7 @@ def get_packages(start_date, end_date):
 
     # Create the query
     query = (
-        'SELECT name, version, filename, python_version, blake2_256_digest, upload_time, download_url\n' 
+        'SELECT name, version, filename, python_version, blake2_256_digest, upload_time, download_url, has_signature\n' 
         'FROM `bigquery-public-data.pypi.distribution_metadata`\n' 
         f'WHERE upload_time > TIMESTAMP("{start_date} 00:00:00")\n' 
         f'AND upload_time < TIMESTAMP("{end_date} 00:00:00")')
