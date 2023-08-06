@@ -64,6 +64,7 @@ if not os.path.exists(package_path):
 
 # Extract the date range from the package file name
 date_range = sys.argv[1][sys.argv[1].find('_')+1:sys.argv[1].find('.')]
+adoption_path = base_path + f'/data/adoption_{date_range}.json'
 log.info(f'Checking signature adoption between {date_range} using {package_path}.')
 
 
@@ -85,69 +86,100 @@ def url_construction(digest: str, filename: str) -> str:
 
     return url
 
-
-def check_package_range(path: str) -> None:
-    '''
-    This function reads a json file containing package information and checks the adoption of signatures for each package.
-    
-    path: The path to the json file containing package information.
-    '''
-
-    # Read the json file
-    log.info(f'Reading json file {path}.')
-    with open(path, 'r') as f:
-        packages = json.load(f)
-
-        # Check the adoption of signatures for each package
-        for package in packages:
-            
-
         
+# Counters for stats we care about
+total_packages = 0
+total_signed = 0
+total_unsigned = 0
+total_signed_valid = 0
+total_signed_invalid = 0
 
+# create a json structure to store information about the packages
+adoption = {
+    'total_packages': total_packages,
+    'total_signed': total_signed,
+    'total_unsigned': total_unsigned,
+    'total_signed_valid': total_signed_valid,
+    'total_signed_invalid': total_signed_invalid,
+    'signed_packages': []
+}
 
+# Read the json file
+log.info(f'Reading json file {package_path}.')
+with open(package_path, 'r') as f:
+    packages = json.load(f)
 
+    # Check the adoption of signatures for each package
+    for package in packages:
+        total_packages += 1
 
-valid_count = 0
-total_count = 0
+        # Check if the package has a signature
+        if package['has_signature']:
+            total_signed += 1
 
+            # Create url and download files
+            filename = package['filename']
+            url = url_construction(digest=package['blake2_256_digest'], 
+                                   filename=filename)
+            subprocess.run(['wget', url], capture_output=True)
+            subprocess.run(['wget', url+'.asc'], capture_output=True)
 
-with open(log_file, 'a', newline='') as logger:
+            # time.sleep(0.001)
 
-    logger_writer = csv.writer(logger)
+            # Run the gpg verify command
+            output = subprocess.run(
+                [
+                    "gpg", 
+                    "--keyserver-options", 
+                    "auto-key-retrieve", 
+                    "--keyserver", 
+                    "keyserver.ubuntu.com", 
+                    "--verify", 
+                    f"{filename}.asc", 
+                    f"{filename}"
+                ], 
+                capture_output=True)
+            
+            # Use regex to check if the signature is valid
+            if re.search("Good signature", str(output.stderr)):
+                total_signed_valid += 1
+            else:
+                total_signed_invalid += 1
 
-    for line in infile:
+            
+            # Add the package to the json structure
+            adoption['signed_packages'].append({
+                'name': package['name'],
+                'version': package['version'],
+                'filename': package['filename'],
+                'python_version': package['python_version'],
+                'blake2_256_digest': package['blake2_256_digest'],
+                'upload_time': package['upload_time'],
+                'download_url': package['download_url'],
+                'file_url': url,
+                'stdout': output.stdout.decode('utf-8'),
+                'stderr': output.stderr.decode('utf-8')
+            })
 
-        filename = line['filename']
-        url = url_construction(line)
+            # Remove the files
+            subprocess.run(['rm', '-r', filename])
+            subprocess.run(['rm', '-r', filename+'.asc'])
 
-        ### need to use data in each line of .csv to first do wget on the correct urls, then run the gpg statement
-        subprocess.run(['wget', url], capture_output=True)
-        subprocess.run(['wget', url+'.asc'], capture_output=True)
+        # If there aren't any signatures, 
+        else:
+            total_unsigned += 1
 
-        # os.system(f"wget {url}")
-        # os.system(f"wget {url}.asc")
-        # os.system("clear")
+# Update the stats
+adoption['total_packages'] = total_packages
+adoption['total_signed'] = total_signed
+adoption['total_unsigned'] = total_unsigned
+adoption['total_signed_valid'] = total_signed_valid
+adoption['total_signed_invalid'] = total_signed_invalid
 
-        time.sleep(0.001)
-        ### based on return msg of gpg command, can then assess validity of signature
-        output = subprocess.run(["gpg", "--keyserver-options", "auto-key-retrieve", 
-        "--keyserver", "keyserver.ubuntu.com", "--verify", f"{filename}.asc", f"{filename}"], capture_output=True)
+# Write the json file
+log.info(f'Writing json file {adoption_path}.')
+with open(adoption_path, 'w') as f:
+    json.dump(adoption, f) 
 
-        if re.search("Good signature", str(output.stderr)):
-            valid_count += 1
-
-        total_count += 1
-
-        logger_writer.writerow([line['name'], line['version'], line['filename'], line['python_version'], line['blake2_256_digest'], output.stdout, output.stderr])
-
-        subprocess.run(['rm', '-r', filename])
-        subprocess.run(['rm', '-r', filename+'.asc'])
-
-    #     ### should probably remove packages at the end of the loop to prevent any buildup
-    #     os.system(f"rm -r {filename}")
-    #     os.system(f"rm -r {filename}.asc")
-
-print(time.localtime())
-
-
-# print(f"Valid signatures: {valid_count}\nTotal signatures: {total_count}")
+# Log end of script
+log_finish()
