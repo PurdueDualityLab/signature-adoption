@@ -1,0 +1,11 @@
+name: maven
+
+
+dependencies:
+  - python=3.7
+  - matplotlib
+  - requests
+  - beautifulsoup4
+  - pandas
+  # Core scientific python
+  - numpy
