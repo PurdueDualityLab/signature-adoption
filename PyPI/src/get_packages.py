@@ -37,12 +37,12 @@ log_path = base_path + f'/logs/get_packages.log'
 # Ensure the log folder exists
 if not os.path.exists(base_path + '/logs'):
     os.mkdir(base_path + '/logs')
-    log.info(f'Created logs folder.')
+    print(f'Created logs folder.')
 
 # Ensure the data folder exists
 if not os.path.exists(base_path + '/data'):
     os.mkdir(base_path + '/data')
-    log.info(f'Created data folder.')
+    print(f'Created data folder.')
 
 # Set up logger
 log_level = log.DEBUG if __debug__ else log.INFO
@@ -66,7 +66,7 @@ def log_finish():
     log.info(f'Script completed. Total time: {datetime.now()-script_start_time}')
 
 
-def get_packages(start_date, end_date):
+def get_packages(start_date: str, end_date: str):
     '''
     This function gets the packages from the PyPI bigquery database.
 
