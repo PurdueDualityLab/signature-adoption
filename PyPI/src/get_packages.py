@@ -85,8 +85,9 @@ def get_packages(start_date, end_date):
         'SELECT name, version, filename, python_version, blake2_256_digest, upload_time, download_url\n' 
         'FROM `bigquery-public-data.pypi.distribution_metadata`\n' 
         f'WHERE upload_time > TIMESTAMP("{start_date} 00:00:00")\n' 
-        f'AND upload_time < TIMESTAMP("{end_date} 00:00:00")\n')
-    log.info(f'Query: {query}')
+        f'AND upload_time < TIMESTAMP("{end_date} 00:00:00")')
+    query_without_newlines = query.replace('\n', ' ')
+    log.info(f'Query: {query_without_newlines}')
 
     # Run the query
     query_job = client.query(query)
