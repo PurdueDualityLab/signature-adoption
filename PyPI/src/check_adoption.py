@@ -1,14 +1,26 @@
+#!/usr/bin/env python
+
+'''check_adoption.py: This script checks the adoption of signatures for packages from PyPI.
+'''
+
 import csv
+import json
 import sys
-import os
 import subprocess
 import time
 import re
+import logging as log
+from datetime import datetime
 
 
-# usage: python3 {name}.py < inputs/{name}.csv
+# Author information
+__author__ = 'Taylor R. Schorlemmer'
+__email__ = 'tschorle@purdue.edu'
+
+
 
 def url_construction(line) -> str:
+    
 
     prefix = "https://files.pythonhosted.org/packages/"
     hash_digest = line['blake2_256_digest']

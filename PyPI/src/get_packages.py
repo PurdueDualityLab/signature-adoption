@@ -115,7 +115,8 @@ for i in range(len(dates)-1):
             'python_version': row[3],
             'blake2_256_digest': row[4],
             'upload_time': str(row[5]),
-            'download_url': row[6]})
+            'download_url': row[6],
+            'has_signature': row[7]})
         
     # Write to file
     log.info(f'Writing packages to {packages_paths[i]}')
