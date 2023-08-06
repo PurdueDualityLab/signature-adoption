@@ -27,11 +27,11 @@ dates = [
 
 # File paths for the files used in this script
 base_path = '..'
-packages_paths = [
-    base_path + f'/data/packages_{dates[0]}_{dates[1]}.json',
-    base_path + f'/data/packages_{dates[1]}_{dates[2]}.json',
-    base_path + f'/data/packages_{dates[2]}_{dates[3]}.json',
-    base_path + f'/data/packages_{dates[3]}_{dates[4]}.json']
+packages_paths = []
+for i in range(len(dates)-1):
+    packages_paths.append(base_path + f'/data/packages_{dates[i]}_{dates[i+1]}.json')
+
+
 log_path = base_path + f'/logs/get_packages.log'
 
 # Ensure the log folder exists
