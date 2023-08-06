@@ -5,13 +5,10 @@
 
 
 # Imports for this script
-import requests
 import json
-import sys
 import os
 import logging as log
 from datetime import datetime
-import time
 from google.cloud import bigquery
 
 
@@ -85,10 +82,11 @@ def get_packages(start_date, end_date):
 
     # Create the query
     query = (
-        'SELECT name, version, filename, python_version, blake2_256_digest, upload_time, download_url' 
-        'FROM `bigquery-public-data.pypi.distribution_metadata`' 
-        f'WHERE upload_time > TIMESTAMP("{start_date} 00:00:00")' 
-        f'AND upload_time < TIMESTAMP("{end_date} 00:00:00")')
+        'SELECT name, version, filename, python_version, blake2_256_digest, upload_time, download_url\n' 
+        'FROM `bigquery-public-data.pypi.distribution_metadata`\n' 
+        f'WHERE upload_time > TIMESTAMP("{start_date} 00:00:00")\n' 
+        f'AND upload_time < TIMESTAMP("{end_date} 00:00:00")\n')
+    log.info(f'Query: {query}')
 
     # Run the query
     query_job = client.query(query)
@@ -99,14 +97,30 @@ def get_packages(start_date, end_date):
     return results
 
 
-# Testing
-results = get_packages('2023-05-23', '2023-05-24')
-
-# Print first 10 rows
-for row in results:
-    print(row)
-
 # Iterate through date ranges
-# for i in range(len(dates)-1):
+for i in range(len(dates)-1):
+
     # Get the packages
-    # results = get_packages(dates[i], dates[i+1])
+    log.info(f'Getting packages between {dates[i]} and {dates[i+1]}')
+    results = get_packages(dates[i], dates[i+1])
+
+    # Create json object
+    packages = []
+    for row in results:
+        packages.append({
+            'name': row[0],
+            'version': row[1],
+            'filename': row[2],
+            'python_version': row[3],
+            'blake2_256_digest': row[4],
+            'upload_time': str(row[5]),
+            'download_url': row[6]})
+        
+    # Write to file
+    log.info(f'Writing packages to {packages_paths[i]}')
+    with open(packages_paths[i], 'w') as f:
+        json.dump(packages, f)
+    
+
+# Log finish
+log_finish()
