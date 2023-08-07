@@ -107,9 +107,13 @@ adoption = {
 # Read the json file
 log.info(f'Reading json file {package_path}.')
 with open(package_path, 'r') as f:
+
+    # Load the json file
     packages = json.load(f)
+    log.info(f'Loaded {len(packages)} packages.')
 
     # Check the adoption of signatures for each package
+    log.info(f'Iterating through packages...')
     for package in packages:
         total_packages += 1
 
@@ -179,7 +183,8 @@ adoption['total_signed_invalid'] = total_signed_invalid
 # Write the json file
 log.info(f'Writing json file {adoption_path}.')
 with open(adoption_path, 'w') as f:
-    json.dump(adoption, f) 
+    json.dump(adoption, f)
+log.info(f'Wrote sumarry and {total_signed} signed packages.')
 
 # Log end of script
 log_finish()
