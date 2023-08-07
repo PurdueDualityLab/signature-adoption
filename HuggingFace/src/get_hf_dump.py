@@ -44,7 +44,7 @@ log.basicConfig(filename=log_path,
                     datefmt='%Y-%m-%d %H:%M:%S')
 
 # Log start time
-log.info(f'Starting get_names script.')
+log.info(f'Starting get_hf_dump script.')
 script_start_time = datetime.now()
 
 def log_finish():

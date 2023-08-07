@@ -1,16 +1,69 @@
-from git import Repo
+#!/usr/bin/env python
+
+'''check_adoption.py: This script checks the adoption of git commmit signatures.
+'''
+
+# Import statements
+import json
+import os
 import subprocess
-from typing import List
-import pandas
-import numpy as np
-from pandas import DataFrame
 import shutil
 import sys
 import csv
+import logging as log
+from datetime import datetime
+from pandas import DataFrame
+from git import Repo
+
+# authorship information
+__author__ = "Taylor R. Schorlemmer"
+__email__ = "tschorle@purdue.edu"
+
+# Base file paths
+base_path = '..'
+log_path = base_path + f'/logs/get_hf_dump.log'
+hf_dump_path = base_path + '/data/hf_dump.json'
+csv_path = base_path + '/data/simplified.csv'
+
+# Ensure the log folder exists
+if not os.path.exists(base_path + '/logs'):
+    os.mkdir(base_path + '/logs')
+    log.info(f'Created logs folder.')
+
+# Ensure the data folder exists
+if not os.path.exists(base_path + '/data'):
+    os.mkdir(base_path + '/data')
+    log.info(f'Created data folder.')
+
+# Set up logger
+log_level = log.DEBUG if __debug__ else log.INFO
+log.basicConfig(filename=log_path,
+                    filemode='a',
+                    level=log_level,
+                    format='%(asctime)s|%(levelname)s|%(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
+
+# Log start time
+log.info(f'Starting check_adoption script.')
+script_start_time = datetime.now()
+
+def log_finish():
+    '''
+    Script simply logs time of script completion and total time elapsed.
+    '''
+
+    # Log end of script
+    log.info(f'Script completed. Total time: {datetime.now()-script_start_time}')
 
 
+# get run id, start, and stop from command line
 if len(sys.argv) < 3:
     print("Usage: python check.py [run_id] [start] [stop]")
+    log.error("Usage: python check.py [run_id] [start] [stop]")
+    sys.exit(1)
+
+
+
 
 
 log_file = f'/home/tschorle/HFSigning/check_log_{sys.argv[1]}.csv'
