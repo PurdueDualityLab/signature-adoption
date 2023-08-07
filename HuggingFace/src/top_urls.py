@@ -1,5 +1,3 @@
-from typing import List
-
 import pandas
 import numpy as np
 from pandas import DataFrame
