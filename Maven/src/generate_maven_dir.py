@@ -114,7 +114,7 @@ if __name__ == "__main__":
     """
 
     # Step 1. Run one by one with different jobs for parallel processing
-    # [aws, com, dev, io, libs, net, org, software]
+    # [aws, com, dev, io, net, org, software]
     lib = 'aws/'
     maven_root_dir = f'https://repo1.maven.org/maven2/{lib}'
     # Change the target path as necessary
@@ -145,4 +145,3 @@ if __name__ == "__main__":
                     generate_file_structure(maven_root_dir, logger=logger)
                 log_file.close()
             lib_count+=1
-    

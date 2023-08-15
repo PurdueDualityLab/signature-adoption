@@ -41,7 +41,8 @@ def process_buffer(curr_dir_buffer, csv_writer):
 
 if __name__ == '__main__':
     """
-    After the run of the program, there should be condensed_{dir_name}.csv file existing in local_condensed_file_path
+    After the run of the program, there should be condensed_{dir_name}.csv
+    file existing in local_condensed_file_path
     """
 
     # Run one by one with different jobs for parallel processing
