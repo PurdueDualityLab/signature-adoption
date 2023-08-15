@@ -5,18 +5,22 @@ Scripts used to collect packages from Maven Central repository.
 
 1. **Clone the Repository:**
 Clone the main repository to your local machine using the following command:
+
 git clone https://github.com/PurdueDualityLab/signature-adoption.git
 
-2. **Navigate to Directory:**
+3. **Navigate to Directory:**
 Change your working directory to ~/signature-adoption/Maven/src
+
 cd ~/signature-adoption/Maven/src
 
-3. **Install Dependencies:**
+5. **Install Dependencies:**
 Create and activate anaconda environment with environment.yml
+
 conda env create -f environment.yml
+
 conda activate maven
 
-4. **Run files in order:**
+7. **Run files in order:**
     1. generate_maven_dir.py
     2. condense_maven_dir.py
     3. generate_maven_signs.py
