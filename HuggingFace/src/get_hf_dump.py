@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 '''get_hf_dump.py: This script gets the repositories and associated metadata from HuggingFace.
+A full data dump is saved in a json file, and a simplified csv is also created.
 '''
 
 # Import statements
@@ -23,7 +24,7 @@ base_path = '..'
 log_path = base_path + f'/logs/get_hf_dump.log'
 hf_dump_path = base_path + '/data/hf_dump.json'
 hf_token_path = base_path + '/src/hf_token.txt'
-csv_path = base_path + '/data/simplified.csv'
+simplified_csv_path = base_path + '/data/simplified.csv'
 
 # Ensure the log folder exists
 if not os.path.exists(base_path + '/logs'):
@@ -77,6 +78,7 @@ for model in list(iter(model_list)):
     modelDict["siblings"] = [file.__dict__ for file in modelDict["siblings"]]
     repo_list.append(modelDict)
 
+# free up memory
 del model_list
 
 # Save list of dictionaries to json file
@@ -85,8 +87,8 @@ with open(hf_dump_path, 'w') as f:
     json.dump(repo_list, f, indent=4)
 
 # Create a simplified csv of data
-log.info(f'Creating simplified csv of data at {csv_path}')
-with open(csv_path, 'w', newline='') as f:
+log.info(f'Creating simplified csv of data at {simplified_csv_path}')
+with open(simplified_csv_path, 'w', newline='') as f:
     
     # Create csv writer
     writer = csv.writer(f)
