@@ -10,7 +10,6 @@ import os
 import subprocess
 import shutil
 import sys
-import csv
 import logging as log
 from datetime import datetime
 import pandas 
