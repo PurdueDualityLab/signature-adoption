@@ -98,7 +98,7 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
     repo_url: The url of the repository to clone.
     '''
     # extract name of repository and create path
-    repo_path = f"{temp_path}/{model_id.split('/')[-1].rstrip('.git')}"
+    repo_path = f"{temp_path}/{''.join(model_id.split('/')).rstrip('.git')}"
     
     # Try to clone the repository
     try:
@@ -189,7 +189,6 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
         shutil.rmtree(repo_path)
         log.info(f'Repository {repo_path} removed successfully.')
     except Exception as e:
-        log.error(e)
         log.warning(f'Repository {repo_path} removal failure...')
 
 
