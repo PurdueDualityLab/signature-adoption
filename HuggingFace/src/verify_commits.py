@@ -80,7 +80,15 @@ verification_data = {
     "start_index": start_index,
     "stop_index": stop_index,
     "collection_start_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    "registries": []
+    "registries": [],
+    "total_packages": 0,
+    "total_commits": 0,
+    "signed_commits": 0,
+    "unsigned_commits": 0,
+    "signed_packages": 0,
+    "unsigned_packages": 0,
+    "valid_signatures": 0,
+    "invalid_signatures": 0,
 }
 
 # Function to clone and verify signatures in a repository
@@ -110,6 +118,7 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
 
         # loop through each commit in the repository
         log.info(f'Verifying signatures for {model_id}.')
+        package_signed = False
         for commit in repo.iter_commits():
 
             hexsha = commit.hexsha
@@ -120,6 +129,17 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
             command = ["git", "verify-commit", "--raw", hexsha]
             output = subprocess.run(command, cwd=repo_path, capture_output=True, text=True)
 
+            # Check if the commit is signed
+            if output.stderr == "" and output.stdout == "":
+                verification_data["unsigned_commits"] += 1
+            else:
+                package_signed = True
+                verification_data["signed_commits"] += 1
+                if "gpg: Good signature" in output.stderr:
+                    verification_data["valid_signatures"] += 1
+                else:
+                    verification_data["invalid_signatures"] += 1
+
             # Add commit to verification data
             commits_data.append({
                 "hexsha": hexsha,
@@ -128,6 +148,16 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
                 "output": output.stdout,
                 "error": output.stderr
             })
+
+        # Update package counts
+        if package_signed:
+            verification_data["signed_packages"] += 1
+        else:
+            verification_data["unsigned_packages"] += 1
+
+        # Update total counts
+        verification_data["total_packages"] += 1
+        verification_data["total_commits"] += len(commits_data)
 
         # Add repository to verification data
         log.info(f'Checked {len(commits_data)} commits for {model_id}.')
