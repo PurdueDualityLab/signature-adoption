@@ -20,9 +20,20 @@ from git import Repo
 __author__ = "Taylor R. Schorlemmer"
 __email__ = "tschorle@purdue.edu"
 
+# get run id, start, and stop from command line
+if len(sys.argv) < 3:
+    print("Usage: python check.py [run_id] [start] [stop]")
+    log.error("Usage: python check.py [run_id] [start] [stop]")
+    sys.exit(1)
+
+# save variables from command line
+run_id = sys.argv[1]
+start_index = int(sys.argv[2])
+stop_index = int(sys.argv[3])
+
 # Base file paths
 base_path = '..'
-log_path = base_path + f'/logs/get_hf_dump.log'
+log_path = base_path + f'/logs/get_hf_dump_{run_id}.log'
 hf_dump_path = base_path + '/data/hf_dump.json'
 simplified_csv_path = base_path + '/data/simplified.csv'
 temp_path = base_path + '/temp'
@@ -63,16 +74,6 @@ def log_finish():
     log.info(f'Script completed. Total time: {datetime.now()-script_start_time}')
 
 
-# get run id, start, and stop from command line
-if len(sys.argv) < 3:
-    print("Usage: python check.py [run_id] [start] [stop]")
-    log.error("Usage: python check.py [run_id] [start] [stop]")
-    sys.exit(1)
-
-# save variables from command line
-run_id = sys.argv[1]
-start_index = int(sys.argv[2])
-stop_index = int(sys.argv[3])
 
 # json variable to store commit data
 verification_data = {
@@ -166,6 +167,7 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
             "url": repo_url,
             "downloads": downloads,
             "last_modified": last_modified,
+            "signed": package_signed,
             "commits": commits_data
         })
 
@@ -177,6 +179,7 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
             "url": repo_url,
             "downloads": downloads,
             "last_modified": last_modified,
+            "signed": False,
             "commits": []
         })
 
