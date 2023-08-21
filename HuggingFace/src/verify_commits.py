@@ -80,7 +80,6 @@ verification_data = {
     "start_index": start_index,
     "stop_index": stop_index,
     "collection_start_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    "registries": [],
     "total_packages": 0,
     "total_commits": 0,
     "signed_commits": 0,
@@ -89,6 +88,7 @@ verification_data = {
     "unsigned_packages": 0,
     "valid_signatures": 0,
     "invalid_signatures": 0,
+    "registries": []
 }
 
 # Function to clone and verify signatures in a repository
