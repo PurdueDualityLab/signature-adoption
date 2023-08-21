@@ -47,7 +47,7 @@ if not os.path.exists(base_path + '/data'):
     print(f'Created data folder.')
 
 # Ensure the temp folder exists
-if not os.path.exists(base_path + '/temp'):
+if not os.path.exists(temp_path):
     os.mkdir(temp_path)
     print(f'Created temp folder.')
 
