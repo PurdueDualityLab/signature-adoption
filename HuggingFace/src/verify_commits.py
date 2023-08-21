@@ -13,7 +13,7 @@ import sys
 import csv
 import logging as log
 from datetime import datetime
-from pandas import DataFrame
+import pandas 
 from git import Repo
 
 # authorship information
@@ -84,7 +84,7 @@ verification_data = {
 }
 
 # Function to clone and verify signatures in a repository
-def clone_verify(model_id, repo_url):
+def clone_verify(model_id, repo_url, downloads, last_modified):
     '''
     This function clones a repository and verifies the signatures of all commits.
     
@@ -134,6 +134,8 @@ def clone_verify(model_id, repo_url):
         verification_data["registries"].append({
             "name": model_id,
             "url": repo_url,
+            "downloads": downloads,
+            "last_modified": last_modified,
             "commits": commits_data
         })
 
@@ -143,6 +145,8 @@ def clone_verify(model_id, repo_url):
         verification_data["registries"].append({
             "name": model_id,
             "url": repo_url,
+            "downloads": downloads,
+            "last_modified": last_modified,
             "commits": []
         })
 
@@ -158,12 +162,12 @@ def clone_verify(model_id, repo_url):
 
 # Read in the simplified csv
 log.info(f'Reading in simplified csv.')
-df = DataFrame.from_csv(simplified_csv_path)
+df = pandas.read_csv(simplified_csv_path, header=None)
 
 # Start iterating through the repositories
 log.info(f'Iterating through repositories between {start_index} and {stop_index}.')
 for index, row in df.iloc[start_index:stop_index].iterrows():
-    clone_verify(row['id'], row['url'], row['downloads'], row['lastModified'])
+    clone_verify(row[0], row[1], row[2], row[3])
 
 # Save verification data to json file
 log.info(f'Saving verification data to {base_path}/data/verification_data_{run_id}.json')
