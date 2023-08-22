@@ -87,7 +87,9 @@ verification_data = {
     "unsigned_packages": 0,
     "valid_signatures": 0,
     "invalid_signatures": 0,
-    "registries": []
+    "clone_failures": 0,
+    "repos": [],
+    "failed_repos": [] 
 }
 
 # Function to clone and verify signatures in a repository
@@ -106,6 +108,7 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
         repo = Repo.clone_from(repo_url, repo_path, bare=True)
     except:
         log.warning(f'Could not clone {model_id}!')
+        verification_data["clone_failures"] += 1
         repo = None
     
 
@@ -162,7 +165,7 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
 
         # Add repository to verification data
         log.info(f'Checked {len(commits_data)} commits for {model_id}.')
-        verification_data["registries"].append({
+        verification_data["repos"].append({
             "name": model_id,
             "url": repo_url,
             "downloads": downloads,
@@ -174,7 +177,7 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
     else:
         # Add empty repository to verification data
         log.warning(f'Could not verify signatures for {model_id}.')
-        verification_data["registries"].append({
+        verification_data["failed_repos"].append({
             "name": model_id,
             "url": repo_url,
             "downloads": downloads,
@@ -183,14 +186,12 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
             "commits": []
         })
 
-
     # Remove the repository
     try:
         shutil.rmtree(repo_path)
         log.info(f'Repository {repo_path} removed successfully.')
     except Exception as e:
         log.warning(f'Repository {repo_path} removal failure...')
-
 
 
 # Read in the simplified csv
