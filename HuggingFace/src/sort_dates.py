@@ -77,7 +77,17 @@ for indx in range(len(dates)-1):
 
     # Add the date to the sorted data
     date_key = dates[indx].strftime( "%Y-%m-%d %H:%M:%S")
-    sorted_data[date_key] = []
+    sorted_data[date_key] = {
+        'total_packages': 0,
+        'total_commits': 0,
+        'signed_commits': 0,
+        'unsigned_commits': 0,
+        'valid_signed_commits': 0,
+        'invalid_signed_commits': 0,
+        'signed_packages': 0,
+        'unsigned_packages': 0,
+        'repos': []
+    }
     
     # Iterate through all registries
     for repo in data['registries']:
@@ -95,12 +105,36 @@ for indx in range(len(dates)-1):
         
         # If there are commits in the date range, add to the sorted data
         if commits_in_range:
+            
+            # Iterate through commits to update totals
+            signed_package = False
+            for commit in commits_in_range:
+                if commit['error'] == "" and commit['output'] == "":
+                    sorted_data[date_key]['unsigned_commits'] += 1
+                else:
+                    signed_package = True
+                    sorted_data[date_key]['signed_commits'] += 1
+                    if "gpg: Good signature" in commit['error']:
+                        sorted_data[date_key]['valid_signed_commits'] += 1
+                    else:
+                        sorted_data[date_key]['invalid_signed_commits'] += 1
+
+            # Update package counts
+            if signed_package:
+                sorted_data[date_key]['signed_packages'] += 1
+            else:
+                sorted_data[date_key]['unsigned_packages'] += 1
+
+            sorted_data[date_key]['total_packages'] += 1
+            sorted_data[date_key]['total_commits'] += len(commits_in_range)
+
             # Add the registries and commits to the sorted data
-            sorted_data[date_key].append({
+            sorted_data[date_key]['repos'].append({
                 'name': repo['name'],
                 'url': repo['url'],
                 'downloads': repo['downloads'],
                 'last_modified': repo['last_modified'],
+                'signed': signed_package,
                 'commits': commits_in_range
             })
 
