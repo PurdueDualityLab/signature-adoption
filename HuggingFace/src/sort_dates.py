@@ -9,7 +9,7 @@ import logging as log
 import sys
 import os
 from datetime import datetime
-
+from datetime import date
 
 # authorship information
 __author__ = "Taylor R. Schorlemmer"
@@ -55,15 +55,61 @@ def log_finish():
 
 # Dates for the sorting
 dates = [
-    '2015-08-11',
-    '2018-03-22',
-    '2022-10-26',
-    '2023-05-23',
-    '2023-08-04']
-
+    datetime(2015, 8, 11),
+    datetime(2018, 3, 22),
+    datetime(2022, 10, 26),
+    datetime(2023, 5, 23),
+    datetime(2023, 8, 4)]
 
 # Read in the file
+data = None
 with open(target_file, 'r') as f:
     data = json.load(f)
 
 # Sort the data by date
+sorted_data = {}
+
+# Iterate through all dates
+log.info(f'Sorting data by date.')
+for indx in range(len(dates)-1):
+
+    log.info(f'Sorting data for {dates[indx]} to {dates[indx+1]}.')
+
+    # Add the date to the sorted data
+    date_key = dates[indx].strftime( "%Y-%m-%d %H:%M:%S")
+    sorted_data[date_key] = []
+    
+    # Iterate through all registries
+    for repo in data['registries']:
+
+        # List to store commits in the date range
+        commits_in_range = []
+
+        # Iterate through all commits
+        for commit in repo['commits']:
+
+            # If the commit is in the date range, add it to the list
+            commit_date = datetime.strptime(commit['time'], "%Y-%m-%d %H:%M:%S")  
+            if commit_date >= dates[indx] and commit_date <= dates[indx+1]:
+                commits_in_range.append(commit)
+        
+        # If there are commits in the date range, add to the sorted data
+        if commits_in_range:
+            # Add the registries and commits to the sorted data
+            sorted_data[date_key].append({
+                'name': repo['name'],
+                'url': repo['url'],
+                'downloads': repo['downloads'],
+                'last_modified': repo['last_modified'],
+                'commits': commits_in_range
+            })
+
+
+# Write the sorted data to a file
+sorted_file = f'{target_file.rstrip(".json")}_sorted.json'
+log.info(f'Writing sorted data to {sorted_file}.')
+with open(sorted_file, 'w') as f:
+    json.dump(sorted_data, f, indent=4)
+
+# Log finish
+log_finish()
