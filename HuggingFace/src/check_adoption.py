@@ -31,7 +31,7 @@ stop_index = int(sys.argv[3])
 
 # Base file paths
 base_path = '..'
-log_path = base_path + f'/logs/get_hf_dump_{run_id}.log'
+log_path = base_path + f'/logs/check_adoption_{run_id}.log'
 hf_dump_path = base_path + '/data/hf_dump.json'
 simplified_csv_path = base_path + '/data/simplified.csv'
 temp_path = base_path + '/temp'
