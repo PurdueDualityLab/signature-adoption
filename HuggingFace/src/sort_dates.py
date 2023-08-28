@@ -17,7 +17,7 @@ __email__ = "tschorle@purdue.edu"
 
 # get run id, start, and stop from command line
 if len(sys.argv) < 1:
-    print("Usage: python sort_dates.py [run_id] [start] [stop]")
+    print("Usage: python sort_dates.py [target_file]")
     sys.exit(1)
 
 # save variables from command line
