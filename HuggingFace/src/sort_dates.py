@@ -89,8 +89,8 @@ for indx in range(len(dates)-1):
         'repos': []
     }
     
-    # Iterate through all registries
-    for repo in data['registries']:
+    # Iterate through all repos
+    for repo in data['repos']:
 
         # List to store commits in the date range
         commits_in_range = []
