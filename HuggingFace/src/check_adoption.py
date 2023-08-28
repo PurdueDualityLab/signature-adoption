@@ -13,28 +13,34 @@ import sys
 import logging as log
 from datetime import datetime
 import pandas 
+import argparse
 from git import Repo
 
 # authorship information
 __author__ = "Taylor R. Schorlemmer"
 __email__ = "tschorle@purdue.edu"
 
-# get run id, start, and stop from command line
-if len(sys.argv) < 3:
-    print("Usage: python check.py [run_id] [start] [stop]")
-    sys.exit(1)
+# Use argparse to get run id, start, and stop from command line
+parser = argparse.ArgumentParser(description='Check adoption of git commit signatures.')
+parser.add_argument('run_id', metavar='run_id', type=int, help='The id of the run.')
+parser.add_argument('--start', type=int, default=0, help='The index to start at.')
+parser.add_argument('--stop', type=int, default=-1, help='The index to stop at.')
+parser.add_argument('--temp', type=str, default='../temp', help='The path to the temp folder.')
+parser.add_argument('-s', '--save', action='store_true', help='Save the bare repos')
+parser.add_argument('--target', type=str, default='../data/simplified.csv', help='The path to the simplified csv.')
+args = parser.parse_args()
 
 # save variables from command line
-run_id = sys.argv[1]
-start_index = int(sys.argv[2])
-stop_index = int(sys.argv[3])
+run_id = args.run_id 
+start_index = args.start
+stop_index = args.stop
 
 # Base file paths
 base_path = '..'
 log_path = base_path + f'/logs/check_adoption_{run_id}.log'
 hf_dump_path = base_path + '/data/hf_dump.json'
-simplified_csv_path = base_path + '/data/simplified.csv'
-temp_path = base_path + '/temp'
+simplified_csv_path = args.target
+temp_path = args.temp
 
 # Ensure the log folder exists
 if not os.path.exists(base_path + '/logs'):
@@ -187,11 +193,12 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
         })
 
     # Remove the repository
-    try:
-        shutil.rmtree(repo_path)
-        log.info(f'Repository {repo_path} removed successfully.')
-    except Exception as e:
-        log.warning(f'Repository {repo_path} removal failure...')
+    if not args.save:
+        try:
+            shutil.rmtree(repo_path)
+            log.info(f'Repository {repo_path} removed successfully.')
+        except Exception as e:
+            log.warning(f'Repository {repo_path} removal failure...')
 
 
 # Read in the simplified csv
