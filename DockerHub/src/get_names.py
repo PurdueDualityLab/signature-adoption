@@ -6,10 +6,16 @@
 import requests
 import os
 import logging as log
+import argparse
 from datetime import datetime
 
 __author__ = 'Taylor R. Schorlemmer'
 __email__ = 'tschorle@purdue.edu'
+
+# Use argparse to get run id, start, and stop from command line
+parser = argparse.ArgumentParser(description='Get names of all repositories in docker hub.')
+parser.add_argument('-o', '--output', type=str, default='../data/names.txt', help='The path to the output file.')
+args = parser.parse_args()
 
 # Base url for dockerhub api
 docker = 'https://hub.docker.com/v2'
@@ -19,7 +25,7 @@ ecosystems = 'https://packages.ecosyste.ms/api/v1'
 
 # File paths for the files used in this script
 base_path = '..'
-names_path = base_path + '/data/names.txt'
+names_path = args.output
 log_path = base_path + f'/logs/get_names.log'
 
 # Ensure the log folder exists
@@ -67,6 +73,10 @@ def get_ecosystems_page(page=1):
 
     # Get the page of results
     response = requests.get(ecosystems + f'/registries/hub.docker.com/package_names?page={page}&per_page=1000')
+
+    # If the status code is not 200, return the status code and null
+    if response.status_code != 200:
+        return response.status_code, None
 
     # Return the response code and names
     return response.status_code, response.json()

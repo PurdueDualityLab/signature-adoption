@@ -10,6 +10,7 @@ import os
 import subprocess
 import shutil
 import sys
+import time
 import logging as log
 from datetime import datetime
 import pandas 
@@ -28,6 +29,7 @@ parser.add_argument('--stop', type=int, default=-1, help='The index to stop at.'
 parser.add_argument('--temp', type=str, default='../temp', help='The path to the temp folder.')
 parser.add_argument('-s', '--save', action='store_true', help='Save the bare repos')
 parser.add_argument('--target', type=str, default='../data/simplified.csv', help='The path to the simplified csv.')
+parser.add_argument('-d', '--delay', type=float, default=0, help='The delay between requests in seconds.')
 args = parser.parse_args()
 
 # save variables from command line
@@ -108,6 +110,10 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
     # extract name of repository and create path
     repo_path = f"{temp_path}/{''.join(model_id.split('/')).rstrip('.git')}"
     
+    # Delay if necessary
+    if args.delay > 0:
+        time.sleep(args.delay)
+
     # Try to clone the repository
     try:
         log.info(f'Cloning {model_id} to {repo_path}.')
