@@ -230,11 +230,14 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
 
     # Create a tar file of the repository
     if args.save:
-        tar_path = os.path.join(args.dloc, f'{local_name}.tar')
-        tar = tarfile.open(tar_path, 'w')
-        tar.add(repo_path, arcname=local_name)
-        tar.close()
-        log.info(f'Repository {repo_path} saved as {tar_path}.')
+        try:
+            tar_path = os.path.join(args.dloc, f'{local_name}.tar')
+            tar = tarfile.open(tar_path, 'w')
+            tar.add(repo_path, arcname=local_name)
+            tar.close()
+            log.info(f'Repository {repo_path} saved as {tar_path}.')
+        except:
+            log.warning(f'Repository {repo_path} could not be saved as {tar_path}.')
 
     # Remove the repository
     try:
