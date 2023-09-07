@@ -9,7 +9,6 @@ import json
 import os
 import subprocess
 import shutil
-import sys
 import tarfile
 import time
 import logging as log
@@ -22,51 +21,83 @@ from git import Repo
 __author__ = "Taylor R. Schorlemmer"
 __email__ = "tschorle@purdue.edu"
 
-# Use argparse to get run id, start, and stop from command line
+# Use argparse to get command line arguments
 parser = argparse.ArgumentParser(description='Check adoption of git commit signatures.')
-parser.add_argument('run_id', type=int, help='The id of the run.')
-parser.add_argument('--start', type=int, default=0, help='The index to start at.')
-parser.add_argument('--stop', type=int, default=-1, help='The index to stop at.')
-parser.add_argument('--', type=str, default='../temp', help='The path to the temp folder.')
-parser.add_argument('-s', '--save', action='store_true', help='Save the bare repos as tar files.')
-parser.add_argument('--target', type=str, default='../data/simplified.csv', help='The path to the simplified csv.')
-parser.add_argument('-d', '--delay', type=float, default=0, help='The delay between requests in seconds.')
+parser.add_argument('output',
+                    type=str,
+                    default='../data/verification_data.json',
+                    help='The output file name. Defaults to ../data/verification_data.json.')
+parser.add_argument('--start',
+                    type=int,
+                    default=0,
+                    help='The index to start at. Defaults to 0')
+parser.add_argument('--stop',
+                    type=int,
+                    default=-1,
+                    help='The index to stop at. Defaults to -1')
+parser.add_argument('--dloc',
+                    type=str,
+                    default='../temp/',
+                    help='The path to the download folder. Defaults to ../temp/')
+parser.add_argument('-s',
+                    '--save',
+                    action='store_true',
+                    help='Save the bare repos as tar files. Default behavior is to delete files after checking.')
+parser.add_argument('--source',
+                    type=str,
+                    default='../data/simplified.csv',
+                    help='The path to the simplified csv. Defaults to ../data/simplified.csv.')
+parser.add_argument('--delay',
+                    type=float,
+                    default=0,
+                    help='The delay between requests in seconds.')
+parser.add_argument('--log',
+                    type=str,
+                    default='../logs/check_adoption.log',
+                    help='The path to the log file. Defaults to ../logs/check_adoption.log.')
 args = parser.parse_args()
 
-# save variables from command line
-run_id = args.run_id 
-start_index = args.start
-stop_index = args.stop
+# Function to ensure an argument path is valid
+def valid_path_create(path, folder=False):
+    '''
+    Function to ensure an argument path is valid. Creates the path if it does not exist.
+    '''
+    path = os.path.abspath(path) + ('/' if folder else '')
+    try:
+        dirname = os.path.dirname(path)
+        if not os.path.exists(dirname):
+            print(f'Path {dirname} does not exist! Creating!')
+            os.makedirs(dirname)
+    except:
+        print(f'{dirname} is not writable! Exiting!')
+        exit(-1)
 
-# Base file paths
-base_path = '..'
-log_path = base_path + f'/logs/check_adoption_{run_id}.log'
-hf_dump_path = base_path + '/data/hf_dump.json'
-simplified_csv_path = args.target
-temp_path = args.temp
+    return path
 
-# Ensure the log folder exists
-if not os.path.exists(base_path + '/logs'):
-    os.mkdir(base_path + '/logs')
-    print(f'Created logs folder.')
+# Function to ensure an argument path is valid
+def valid_path(path):
+    '''
+    Function to ensure an argument path is valid.
+    '''
+    path = os.path.abspath(path)
+    if not os.path.exists(path):
+        print(f'Path {path} does not exist! Exiting!')
+        exit(-1)
+    return path
 
-# Ensure the data folder exists
-if not os.path.exists(base_path + '/data'):
-    os.mkdir(base_path + '/data')
-    print(f'Created data folder.')
-
-# Ensure the temp folder exists
-if not os.path.exists(temp_path):
-    os.mkdir(temp_path)
-    print(f'Created temp folder.')
+# Normalize paths
+args.output = valid_path_create(args.output)
+args.log = valid_path_create(args.log)
+args.dloc = valid_path_create(args.dloc, folder=True)
+args.source = valid_path(args.source)
 
 # Set up logger
 log_level = log.DEBUG if __debug__ else log.INFO
-log.basicConfig(filename=log_path,
-                    filemode='a',
-                    level=log_level,
-                    format='%(asctime)s|%(levelname)s|%(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+log.basicConfig(filename=args.log,
+                filemode='a',
+                level=log_level,
+                format='%(asctime)s|%(levelname)s|%(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S')
 
 # Log start time
 log.info(f'Starting check_adoption script.')
@@ -80,13 +111,10 @@ def log_finish():
     # Log end of script
     log.info(f'Script completed. Total time: {datetime.now()-script_start_time}')
 
-
-
 # json variable to store commit data
 verification_data = {
-    "run_id": run_id,
-    "start_index": start_index,
-    "stop_index": stop_index,
+    "start_index": args.start,
+    "stop_index": args.stop,
     "collection_start_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     "total_packages": 0,
     "total_commits": 0,
@@ -109,8 +137,8 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
     repo_url: The url of the repository to clone.
     '''
     # extract name of repository and create path
-    local_name = ''.join(model_id.split('/')).rstrip('.git')
-    repo_path = f"{temp_path}/{local_name}"
+    local_name = ''.join(model_id.split('/'))
+    repo_path = os.path.join(args.dloc, local_name)
     
     # Delay if necessary
     if args.delay > 0:
@@ -202,10 +230,11 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
 
     # Create a tar file of the repository
     if args.save:
-        tar = tarfile.open(f'{temp_path}/{local_name}.tar', 'w')
+        tar_path = os.path.join(args.dloc, f'{local_name}.tar')
+        tar = tarfile.open(tar_path, 'w')
         tar.add(repo_path, arcname=local_name)
         tar.close()
-        log.info(f'Repository {repo_path} saved as {temp_path}/{local_name}.tar.')
+        log.info(f'Repository {repo_path} saved as {tar_path}.')
 
     # Remove the repository
     try:
@@ -216,16 +245,16 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
     
 # Read in the simplified csv
 log.info(f'Reading in simplified csv.')
-df = pandas.read_csv(simplified_csv_path, header=None)
+df = pandas.read_csv(args.source, header=None)
 
 # Start iterating through the repositories
-log.info(f'Iterating through repositories between {start_index} and {stop_index}.')
-for index, row in df.iloc[start_index:stop_index].iterrows():
+log.info(f'Iterating through repositories between {args.start} and {args.stop}.')
+for index, row in df.iloc[args.start:args.stop].iterrows():
     clone_verify(row[0], row[1], row[2], row[3])
 
 # Save verification data to json file
-log.info(f'Saving verification data to {base_path}/data/verification_data_{run_id}.json')
-with open(f'{base_path}/data/verification_data_{run_id}.json', 'w') as f:
+log.info(f'Saving verification data to {args.output}.')
+with open(args.output, 'w') as f:
     json.dump(verification_data, f, indent=4)
 
 # Log finish
