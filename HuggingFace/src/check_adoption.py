@@ -10,6 +10,7 @@ import os
 import subprocess
 import shutil
 import sys
+import tarfile
 import time
 import logging as log
 from datetime import datetime
@@ -23,11 +24,11 @@ __email__ = "tschorle@purdue.edu"
 
 # Use argparse to get run id, start, and stop from command line
 parser = argparse.ArgumentParser(description='Check adoption of git commit signatures.')
-parser.add_argument('run_id', metavar='run_id', type=int, help='The id of the run.')
+parser.add_argument('run_id', type=int, help='The id of the run.')
 parser.add_argument('--start', type=int, default=0, help='The index to start at.')
 parser.add_argument('--stop', type=int, default=-1, help='The index to stop at.')
-parser.add_argument('--temp', type=str, default='../temp', help='The path to the temp folder.')
-parser.add_argument('-s', '--save', action='store_true', help='Save the bare repos')
+parser.add_argument('--', type=str, default='../temp', help='The path to the temp folder.')
+parser.add_argument('-s', '--save', action='store_true', help='Save the bare repos as tar files.')
 parser.add_argument('--target', type=str, default='../data/simplified.csv', help='The path to the simplified csv.')
 parser.add_argument('-d', '--delay', type=float, default=0, help='The delay between requests in seconds.')
 args = parser.parse_args()
@@ -108,7 +109,8 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
     repo_url: The url of the repository to clone.
     '''
     # extract name of repository and create path
-    repo_path = f"{temp_path}/{''.join(model_id.split('/')).rstrip('.git')}"
+    local_name = ''.join(model_id.split('/')).rstrip('.git')
+    repo_path = f"{temp_path}/{local_name}"
     
     # Delay if necessary
     if args.delay > 0:
@@ -198,15 +200,20 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
             "commits": []
         })
 
+    # Create a tar file of the repository
+    if args.save:
+        tar = tarfile.open(f'{temp_path}/{local_name}.tar', 'w')
+        tar.add(repo_path, arcname=local_name)
+        tar.close()
+        log.info(f'Repository {repo_path} saved as {temp_path}/{local_name}.tar.')
+
     # Remove the repository
-    if not args.save:
-        try:
-            shutil.rmtree(repo_path)
-            log.info(f'Repository {repo_path} removed successfully.')
-        except Exception as e:
-            log.warning(f'Repository {repo_path} removal failure...')
-
-
+    try:
+        shutil.rmtree(repo_path)
+        log.info(f'Repository {repo_path} removed successfully.')
+    except Exception as e:
+        log.warning(f'Repository {repo_path} removal failure...')
+    
 # Read in the simplified csv
 log.info(f'Reading in simplified csv.')
 df = pandas.read_csv(simplified_csv_path, header=None)
