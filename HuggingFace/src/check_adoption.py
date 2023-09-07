@@ -23,7 +23,7 @@ __email__ = "tschorle@purdue.edu"
 
 # Use argparse to get command line arguments
 parser = argparse.ArgumentParser(description='Check adoption of git commit signatures.')
-parser.add_argument('output',
+parser.add_argument('--output',
                     type=str,
                     default='../data/verification_data.json',
                     help='The output file name. Defaults to ../data/verification_data.json.')
@@ -53,8 +53,8 @@ parser.add_argument('--delay',
                     help='The delay between requests in seconds.')
 parser.add_argument('--log',
                     type=str,
-                    default='../logs/check_adoption.log',
-                    help='The path to the log file. Defaults to ../logs/check_adoption.log.')
+                    default=f'../logs/check_adoption_{datetime.now().strftime("%Y-%m-%d_%H-%M")}.log',
+                    help='The path to the log file. Defaults to ../logs/check_adoption_Y-M-D_H-M.log.')
 args = parser.parse_args()
 
 # Function to ensure an argument path is valid
