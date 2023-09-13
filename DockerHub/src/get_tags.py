@@ -3,6 +3,7 @@
 '''get_tags.py: This script gets the tags for each repository on DockerHub.
 '''
 
+import time
 import requests
 import json
 import sys
@@ -41,6 +42,10 @@ parser.add_argument('--source',
                     type=str,
                     default='../data/names.txt',
                     help='The path to the list of repository names. Defaults to ../data/names.txt.')
+parser.add_argument('--retry',
+                    type=int,
+                    default=3,
+                    help='The number of times to retry a request before giving up. Defaults to 3.')
 args = parser.parse_args()
 
 # Function to ensure an argument path is valid
@@ -102,14 +107,15 @@ def log_finish():
 def get_tags(repository_name, page=1):
     """
     This function takes in the name of a repository on docker hub and returns
-    all tags associated with it.
+    all tags associated with it and rate limits for following requests.
 
     repository_name: the name of the target repository
 
     page: start page of results to fetch. Default is 1, going past the number of
     pages available returns an error.
 
-    returns: the list of tags for a given registry.
+    returns: the json response for a given registry and the amount of time to wait
+    before the next request.
     """
 
 
@@ -124,30 +130,31 @@ def get_tags(repository_name, page=1):
 
     # Get response from the api
     response = requests.get(tags_req)
+    json_response = response.json()
     code = response.status_code
+    headers = response.headers
 
+    # Get rate limiting information
+    remaining_requests = int(headers['X-RateLimit-Remaining'])
+    reset_time = int(headers['X-RateLimit-Reset'])
+    wait_time = 0
 
-    # Check for rate limiting
-    if code == 429:
-        log.error(f'Recieved status_code {code} - rate limiting. '
-                  f'{repository_name} failed to download. Exiting.')
-        log_finish()
-        exit(-1)
-
-    
     # This means there might be an error
     if code != 200:
         log.warning(f'Recieved status code {code} for {repository_name}.')
         return None
 
-    # If there are more results on the next page, continue to get results
-    if response.json()['next'] != None:
-        return response.json()['results'] + \
-               get_tags(repository_name=repository_name, page=page+1)
+    # Logic for rate limiting
+    if code == 429:
+        log.warning(f'Rate limiting.')
+        reset_time = int(headers['X-Retry-After'])
+        wait_time = reset_time-datetime.timestamp(datetime.now())
+        json_response = None
+    elif remaining_requests == 0:
+        wait_time = reset_time-datetime.timestamp(datetime.now())
     
-    # End of tags, return all responses
-    else:
-        return response.json()['results']
+    # Return the response and wait time
+    return json_response, wait_time
 
 
 
@@ -159,17 +166,41 @@ log.info(f'Opening {args.source}.')
 with open(args.source, 'r', newline='') as name_file:
 
     # Get to the right place in the file
-    log.info(f'Skipping the first {start_repository} repositories.')
-    for x in range(start_repository):
+    log.info(f'Skipping the first {args.start} repositories.')
+    for x in range(args.start):
         name_file.readline()
     
     # Read the correct number of repository names
     log.info(f'Beginning to loop through the selected repositories.')
-    for x in range(start_repository, stop_repository):
+    x = args.start
+    while(x < args.stop or args.stop == -1):
+
+        # Increment the counter
+        x += 1
 
         # Get next repo name and get tags for it
-        repo_name = name_file.readline().strip()
-        repo_tags = get_tags(repository_name=repo_name)
+        next_line = name_file.readline()
+        if next_line == '':
+            break
+        
+
+        repo_name = next_line.strip()
+        
+        json_response, wait_time = get_tags(repository_name=repo_name)
+
+        # If there is a wait time, wait
+        if wait_time > 0:
+            log.info(f'Waiting {wait_time} seconds.')
+            time.sleep(wait_time)
+
+        # # If there are more results on the next page, continue to get results
+        # if response.json()['next'] != None:
+        #     return response.json()['results'] + \
+        #         get_tags(repository_name=repository_name, page=page+1)
+        
+        # # End of tags, return all responses
+        # else:
+        #     return response.json()['results']
 
         # if repo_tags is None, then there was an problem - skip this repo
         if repo_tags == None:
