@@ -12,10 +12,9 @@ from datetime import datetime
 __author__ = 'Taylor R. Schorlemmer'
 __email__ = 'tschorle@purdue.edu'
 
-# Use argparse to get run id, start, and stop from command line
+# Use argparse to get command line args 
 parser = argparse.ArgumentParser(description='Get names of all repositories in docker hub.')
-parser.add_argument('-o',
-                    '--output',
+parser.add_argument('--output',
                     type=str,
                     default='../data/names.txt',
                     help='The path to the output file.')
@@ -23,6 +22,17 @@ parser.add_argument('--log',
                     type=str,
                     default=f'../logs/get_names.log',
                     help='The path to the log file. Defaults to ../logs/get_names.log.')
+parser.add_argument('--no-official',
+                    action='store_false',
+                    help='Whether or not to get official repos. Defaults to True.')
+parser.add_argument('--start',
+                    type=int,
+                    default=0,
+                    help='The index to start at. Defaults to 0')
+parser.add_argument('--stop',
+                    type=int,
+                    default=-1,
+                    help='The index to stop at. Defaults to -1')
 args = parser.parse_args()
 
 # Function to ensure an argument path is valid

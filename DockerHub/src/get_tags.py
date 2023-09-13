@@ -7,6 +7,7 @@ import requests
 import json
 import sys
 import os
+import argparse
 import logging as log
 from datetime import datetime
 
@@ -16,34 +17,68 @@ __email__ = 'tschorle@purdue.edu'
 # Base url for dockerhub api
 docker = 'https://hub.docker.com/v2'
 
-# Check to see if command line args are correct
-if len(sys.argv) != 3:
-    print('Usage: python get_tags.py <start_repository> <stop_repository>')
-    exit(-1)
 
-# Get the start and stop parameters from the command line args
-start_repository = int(sys.argv[1])
-stop_repository = int(sys.argv[2])
 
-# File paths for the files used in this script
-base_path = '..'
-names_path = base_path + '/data/names.txt'
-tags_path = base_path + f'/data/tags{start_repository}-{stop_repository}.json'
-log_path = base_path + f'/logs/get_tags{start_repository}-{stop_repository}.log'
+# Use argparse to get command line args
+parser = argparse.ArgumentParser(description='Get tags for all repositories in docker hub.')
+parser.add_argument('--output',
+                    type=str,
+                    default='../data/names_tags.json',
+                    help='The path to the output file. Defaults to ../data/names_tags.json.')
+parser.add_argument('--log',
+                    type=str,
+                    default=f'../logs/get_tags.log',
+                    help='The path to the log file. Defaults to ../logs/get_tags.log.')
+parser.add_argument('--start',
+                    type=int,
+                    default=0,
+                    help='The index to start at. Defaults to 0')
+parser.add_argument('--stop',
+                    type=int,
+                    default=-1,
+                    help='The index to stop at. Defaults to -1')
+parser.add_argument('--source',
+                    type=str,
+                    default='../data/names.txt',
+                    help='The path to the list of repository names. Defaults to ../data/names.txt.')
+args = parser.parse_args()
 
-# Ensure the log folder exists
-if not os.path.exists(base_path + '/logs'):
-    os.mkdir(base_path + '/logs')
-    log.info(f'Created logs folder.')
+# Function to ensure an argument path is valid
+def valid_path_create(path, folder=False):
+    '''
+    Function to ensure an argument path is valid. Creates the path if it does not exist.
+    '''
+    path = os.path.abspath(path) + ('/' if folder else '')
+    try:
+        dirname = os.path.dirname(path)
+        if not os.path.exists(dirname):
+            print(f'Path {dirname} does not exist! Creating!')
+            os.makedirs(dirname)
+    except:
+        print(f'{dirname} is not writable! Exiting!')
+        exit(-1)
 
-# Ensure the data folder exists
-if not os.path.exists(base_path + '/data'):
-    os.mkdir(base_path + '/data')
-    log.info(f'Created data folder.')
+    return path
+
+# Function to ensure an argument path is valid
+def valid_path(path):
+    '''
+    Function to ensure an argument path is valid.
+    '''
+    path = os.path.abspath(path)
+    if not os.path.exists(path):
+        print(f'Path {path} does not exist! Exiting!')
+        exit(-1)
+    return path
+
+# Normalize paths
+args.output = valid_path_create(args.output)
+args.log = valid_path_create(args.log)
+args.source = valid_path(args.source)
 
 # Set up logger
 log_level = log.DEBUG if __debug__ else log.INFO
-log.basicConfig(filename=log_path,
+log.basicConfig(filename=args.log,
                     filemode='a',
                     level=log_level,
                     format='%(asctime)s|%(levelname)s|%(message)s',
@@ -120,8 +155,8 @@ def get_tags(repository_name, page=1):
 tag_data = []
 
 # Open file containing all of the repository names
-log.info(f'Opening {names_path}.')
-with open(names_path, 'r', newline='') as name_file:
+log.info(f'Opening {args.source}.')
+with open(args.source, 'r', newline='') as name_file:
 
     # Get to the right place in the file
     log.info(f'Skipping the first {start_repository} repositories.')
@@ -152,8 +187,8 @@ with open(names_path, 'r', newline='') as name_file:
         })
 
 # Open up the json file
-log.info(f'Writing json to {tags_path}.')
-with open(tags_path, 'w') as tags_file:
+log.info(f'Writing json to {args.output}.')
+with open(args.output, 'w') as tags_file:
 
     # Write data to file
     tags_file.write(json.dumps(tag_data))
