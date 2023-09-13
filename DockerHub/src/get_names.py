@@ -14,8 +14,37 @@ __email__ = 'tschorle@purdue.edu'
 
 # Use argparse to get run id, start, and stop from command line
 parser = argparse.ArgumentParser(description='Get names of all repositories in docker hub.')
-parser.add_argument('-o', '--output', type=str, default='../data/names.txt', help='The path to the output file.')
+parser.add_argument('-o',
+                    '--output',
+                    type=str,
+                    default='../data/names.txt',
+                    help='The path to the output file.')
+parser.add_argument('--log',
+                    type=str,
+                    default=f'../logs/get_names.log',
+                    help='The path to the log file. Defaults to ../logs/get_names.log.')
 args = parser.parse_args()
+
+# Function to ensure an argument path is valid
+def valid_path_create(path, folder=False):
+    '''
+    Function to ensure an argument path is valid. Creates the path if it does not exist.
+    '''
+    path = os.path.abspath(path) + ('/' if folder else '')
+    try:
+        dirname = os.path.dirname(path)
+        if not os.path.exists(dirname):
+            print(f'Path {dirname} does not exist! Creating!')
+            os.makedirs(dirname)
+    except:
+        print(f'{dirname} is not writable! Exiting!')
+        exit(-1)
+
+    return path
+
+# Normalize paths
+args.output = valid_path_create(args.output)
+args.log = valid_path_create(args.log)
 
 # Base url for dockerhub api
 docker = 'https://hub.docker.com/v2'
@@ -23,24 +52,9 @@ docker = 'https://hub.docker.com/v2'
 # Base url for ecosystems api
 ecosystems = 'https://packages.ecosyste.ms/api/v1'
 
-# File paths for the files used in this script
-base_path = '..'
-names_path = args.output
-log_path = base_path + f'/logs/get_names.log'
-
-# Ensure the log folder exists
-if not os.path.exists(base_path + '/logs'):
-    os.mkdir(base_path + '/logs')
-    log.info(f'Created logs folder.')
-
-# Ensure the data folder exists
-if not os.path.exists(base_path + '/data'):
-    os.mkdir(base_path + '/data')
-    log.info(f'Created data folder.')
-
 # Set up logger
 log_level = log.DEBUG if __debug__ else log.INFO
-log.basicConfig(filename=log_path,
+log.basicConfig(filename=args.log,
                     filemode='a',
                     level=log_level,
                     format='%(asctime)s|%(levelname)s|%(message)s',
@@ -124,7 +138,7 @@ def get_official_dockerhub():
 
 
 # Open the names file and get names
-with open(names_path, 'w') as names_file:
+with open(args.output, 'w') as names_file:
 
     # Log start of getting names
     log.info(f'Getting names from ecosyste.ms.')

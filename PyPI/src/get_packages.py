@@ -121,7 +121,7 @@ for i in range(len(dates)-1):
     # Write to file
     log.info(f'Writing packages to {packages_paths[i]}')
     with open(packages_paths[i], 'w') as f:
-        json.dump(packages, f)
+        json.dump(packages, f, indent=4)
     
 
 # Log finish
