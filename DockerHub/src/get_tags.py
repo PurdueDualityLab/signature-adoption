@@ -156,6 +156,24 @@ def get_tags(repository_name, page=1):
     # Return the response and wait time
     return json_response, wait_time
 
+def get_all_tags(repository_name):
+
+
+        # If there is a wait time, wait
+        # if wait_time > 0:
+        #     log.info(f'Waiting {wait_time} seconds.')
+        # #     time.sleep(wait_time)
+
+        # # If there are more results on the next page, continue to get results
+        # if response.json()['next'] != None:
+        #     return response.json()['results'] + \
+        #         get_tags(repository_name=repository_name, page=page+1)
+        
+        # # End of tags, return all responses
+        # else:
+        #     return response.json()['results']
+
+    return None
 
 
 
@@ -186,21 +204,7 @@ with open(args.source, 'r', newline='') as name_file:
 
         repo_name = next_line.strip()
         
-        json_response, wait_time = get_tags(repository_name=repo_name)
-
-        # If there is a wait time, wait
-        if wait_time > 0:
-            log.info(f'Waiting {wait_time} seconds.')
-            time.sleep(wait_time)
-
-        # # If there are more results on the next page, continue to get results
-        # if response.json()['next'] != None:
-        #     return response.json()['results'] + \
-        #         get_tags(repository_name=repository_name, page=page+1)
-        
-        # # End of tags, return all responses
-        # else:
-        #     return response.json()['results']
+        repo_tags = get_all_tags(repository_name=repo_name)
 
         # if repo_tags is None, then there was an problem - skip this repo
         if repo_tags == None:
