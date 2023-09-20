@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''get_hf_dump.py: This script gets the repositories and associated metadata from HuggingFace.
+'''get_packages.py: This script gets the repositories and associated metadata from HuggingFace.
 A full data dump is saved in a json file, and a simplified csv is also created.
 '''
 
