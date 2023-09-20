@@ -103,25 +103,30 @@ def log_finish():
     log.info(f'Script completed. Total time: {datetime.now()-script_start_time}')
 
 
+wait_time = 0
 
-def get_tags(repository_name, page=1):
+def get_tags(repository_name, page=1, retry=3):
     """
     This function takes in the name of a repository on docker hub and returns
-    all tags associated with it and rate limits for following requests.
+    all tags associated with it and deals with rate limits.
 
     repository_name: the name of the target repository
 
     page: start page of results to fetch. Default is 1, going past the number of
     pages available returns an error.
 
-    returns: the json response for a given registry and the amount of time to wait
-    before the next request.
+    returns: the json response for a given registry
     """
 
 
     log.debug(f'Starting tag retrevial for {repository_name}. '
-             f'Page {page}.')
+             f'Page {page}.'
+             f'Retries remaining {retry}.')
 
+    # If there are no retries left, return None
+    if retry == 0:
+        log.warning(f'No retries left for {repository_name}.')
+        return None
     
     # Create a request for the dockerhub api
     tags_req = f'{docker}/repositories/{repository_name}/'\
@@ -134,50 +139,48 @@ def get_tags(repository_name, page=1):
     code = response.status_code
     headers = response.headers
 
-    # Get rate limiting information
-    remaining_requests = int(headers['X-RateLimit-Remaining'])
-    reset_time = int(headers['X-RateLimit-Reset'])
-    wait_time = 0
 
-    # This means there might be an error
-    if code != 200:
-        log.warning(f'Recieved status code {code} for {repository_name}.')
+    # 404 means the repository does not exist
+    if code == 404:
+        log.warning(f'Repository {repository_name} does not exist.')
         return None
 
     # Logic for rate limiting
+    wait_time = 0
     if code == 429:
-        log.warning(f'Rate limiting.')
-        reset_time = int(headers['X-Retry-After'])
+        reset_time = int(headers['Retry-After'])
+        log.warning(f'Rate limiting. Resetting at {reset_time}.')
         wait_time = reset_time-datetime.timestamp(datetime.now())
-        json_response = None
-    elif remaining_requests == 0:
-        wait_time = reset_time-datetime.timestamp(datetime.now())
+    else:
+        remaining_requests = int(headers['X-RateLimit-Remaining'])
+        reset_time = int(headers['X-RateLimit-Reset'])
+        if remaining_requests == 0:
+            wait_time = reset_time-datetime.timestamp(datetime.now())
+
+    # If there is a wait time, wait
+    if wait_time > 0:
+        log.info(f'waiting {wait_time} seconds.')
+        time.sleep(wait_time)
+
+    # This means there might be an error
+    if code != 200:
+        log.warning(f'Recieved status code {code} for {repository_name} retrying.')
+        return get_tags(repository_name=repository_name, page=page, retry=retry-1)
+
+    # If there are more results on the next page, continue to get results
+    if json_response['next'] != None:
+        return json_response['results'] + \
+            get_tags(repository_name=repository_name,
+                     page=page+1,
+                     retry=args.retry)
     
-    # Return the response and wait time
-    return json_response, wait_time
-
-def get_all_tags(repository_name):
-
-
-        # If there is a wait time, wait
-        # if wait_time > 0:
-        #     log.info(f'Waiting {wait_time} seconds.')
-        # #     time.sleep(wait_time)
-
-        # # If there are more results on the next page, continue to get results
-        # if response.json()['next'] != None:
-        #     return response.json()['results'] + \
-        #         get_tags(repository_name=repository_name, page=page+1)
-        
-        # # End of tags, return all responses
-        # else:
-        #     return response.json()['results']
-
-    return None
-
-
+    # Return the response
+    return json_response['results']
 
 tag_data = []
+total_tags = 0
+total_repos = 0
+total_valid_repos = 0
 
 # Open file containing all of the repository names
 log.info(f'Opening {args.source}.')
@@ -204,15 +207,21 @@ with open(args.source, 'r', newline='') as name_file:
 
         repo_name = next_line.strip()
         
-        repo_tags = get_all_tags(repository_name=repo_name)
+        repo_tags = get_tags(repository_name=repo_name, retry=args.retry)
 
         # if repo_tags is None, then there was an problem - skip this repo
         if repo_tags == None:
-            log.warning(f'Skipping {repo_name}.')
-            continue
+            log.warning(f'No tags for {repo_name}.')
 
         # Get the number of tags
-        count_tags = len(repo_tags)
+        count_tags = len(repo_tags) if repo_tags != None else 0
+
+        # Increment the totals 
+        total_tags += count_tags
+        total_repos += 1
+        if repo_tags != None:
+            total_valid_repos += 1
+        
 
         # Append the data to the json list
         tag_data.append({
@@ -221,13 +230,20 @@ with open(args.source, 'r', newline='') as name_file:
             'tags':repo_tags
         })
 
+data = {
+    'total_repos':total_repos,
+    'total_valid_repos':total_valid_repos,
+    'total_tags':total_tags,
+    'data':tag_data
+}
+
+
 # Open up the json file
 log.info(f'Writing json to {args.output}.')
 with open(args.output, 'w') as tags_file:
 
     # Write data to file
-    tags_file.write(json.dumps(tag_data))
-
+    json.dump(data, tags_file, indent=4)
 
 # Done
 log_finish()
