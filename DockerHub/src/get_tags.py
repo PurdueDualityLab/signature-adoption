@@ -24,8 +24,8 @@ docker = 'https://hub.docker.com/v2'
 parser = argparse.ArgumentParser(description='Get tags for all repositories in docker hub.')
 parser.add_argument('--output',
                     type=str,
-                    default='../data/names_tags.json',
-                    help='The path to the output file. Defaults to ../data/names_tags.json.')
+                    default='../data/tags.json',
+                    help='The path to the output file. Defaults to ../data/tags.json.')
 parser.add_argument('--log',
                     type=str,
                     default=f'../logs/get_tags.log',
