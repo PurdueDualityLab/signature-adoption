@@ -4,3 +4,7 @@
 *.csv
 *.sub
 *.out
+data/
+logs/
+sub/
+docker/
