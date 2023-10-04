@@ -4,8 +4,10 @@
 *.csv
 *.sub
 *.out
+__pycache__/
 data/
 logs/
 sub/
 env/
+
 
