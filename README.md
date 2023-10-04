@@ -1,4 +1,12 @@
 # signature-adoption
-Tools for verifying signatures on Hugging Face, Docker Hub, Maven Central, and PyPI.
+Tools for verifying signatures on PyPI, NPM, Docker Hub, Maven Central, and Hugging Face.
 
-Be advised, the script used to get package info from the PyPI BigQuery requires authentication. Please see their documentation at https://cloud.google.com/docs/authentication/provide-credentials-adc.
+## Directory Structure
+
+.
+|--- src
+|--- README.md
+
+The ./src folder contains scripts that are used to check signature adoption across PyPI, NPM, Docker Hub, Maven Central, and Hugging Face.
+Scripts in this folder will create ./data and ./logs folders if they do not exist (or other folders if the user specifies) and corresponding files.
+Within the ./src directory, there are 
