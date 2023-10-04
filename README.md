@@ -24,4 +24,29 @@ Tools for verifying signatures on PyPI, NPM, Docker Hub, Maven Central, and Hugg
     └── pypi
 ```
 ## Requirements
-The initial dataset generation script ```./src/get_packages.py``` interfaces with a PostgreSQL database with a data dump from [ecosyste.ms](https://packages.ecosyste.ms/open-data).
+The initial dataset generation script [get_packages.py](src/get_packages.py) interfaces with a PostgreSQL database with a data dump from [ecosyste.ms](https://packages.ecosyste.ms/open-data).
+Before running the [get_packages.py](src/get_packages.py) script, a valid PostgreSQL server should be running with the _packages_production_ database available.
+Please be aware that **this database is about 200G when rebuilt**.
+By default, the [get_packages.py](src/get_packages.py) script is configured to interface with a PostgreSQL server running on the localhost, to change this configuration, you will have to modify the `db_credentials` variable in the code.
+
+The scripts for this project are written in Python.
+The [requirements.txt](requirements.txt) can be used to create a Python virtual environment with all necessary dependencies in _bash_ using: 
+```bash
+python -m venv env
+source env/bin/activate
+python -m pip install -r requirements.txt
+```
+
+## How to Run
+Before checking for signature adoption in each registry, we need to get a list of all packages for each registry. 
+For PyPI, NPM, Docker Hub, and Maven Central, we can run the [get_packages.py](src/get_packages.py) script to generate a list of packages and versions from each registry.
+This depends on a valid PostgreSQL server running.
+To get packages from all registries, run:
+```bash
+export PSQL_Password=<my_psql_password>
+python src/get_packages.py -pdnm
+```
+Where `<my_psql_password>` is the password for the PostgreSQL user and the `-pdnm` flags indicate that the script should get package information for PyPI, Docker Hub, NPM, and Maven respectively.
+This script will generate a log file at ./logs/get_packages.log and datafiles at ./data/packages_<registry>.ndjson by default.
+Note that the output of the script is a series of Newline Delimited JSON files where each JSON object (or line of the output file) represents a single package and all of its versions.
+For example, `wc -l data/packages_docker.ndjson` will show the number of packages collected from docker hub.
