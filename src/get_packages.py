@@ -122,7 +122,7 @@ def get_packages(args):
     # Query to get versions
     query_vrsns = '''
         SELECT * FROM versions
-        WHERE id = %s;
+        WHERE package_id = %s;
     '''
 
     # List of ecosystems
