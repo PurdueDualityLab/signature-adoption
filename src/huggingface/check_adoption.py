@@ -13,7 +13,7 @@ import tarfile
 import time
 import logging as log
 from datetime import datetime
-import pandas 
+import pandas
 import argparse
 from git import Repo
 
@@ -22,7 +22,8 @@ __author__ = "Taylor R. Schorlemmer"
 __email__ = "tschorle@purdue.edu"
 
 # Use argparse to get command line arguments
-parser = argparse.ArgumentParser(description='Check adoption of git commit signatures.')
+parser = argparse.ArgumentParser(
+    description='Check adoption of git commit signatures.')
 parser.add_argument('--output',
                     type=str,
                     default='../data/verification_data.json',
@@ -58,6 +59,8 @@ parser.add_argument('--log',
 args = parser.parse_args()
 
 # Function to ensure an argument path is valid
+
+
 def valid_path_create(path, folder=False):
     '''
     Function to ensure an argument path is valid. Creates the path if it does not exist.
@@ -75,6 +78,8 @@ def valid_path_create(path, folder=False):
     return path
 
 # Function to ensure an argument path is valid
+
+
 def valid_path(path):
     '''
     Function to ensure an argument path is valid.
@@ -84,6 +89,7 @@ def valid_path(path):
         print(f'Path {path} does not exist! Exiting!')
         exit(-1)
     return path
+
 
 # Normalize paths
 args.output = valid_path_create(args.output)
@@ -103,13 +109,16 @@ log.basicConfig(filename=args.log,
 log.info(f'Starting check_adoption script.')
 script_start_time = datetime.now()
 
+
 def log_finish():
     '''
     Script simply logs time of script completion and total time elapsed.
     '''
 
     # Log end of script
-    log.info(f'Script completed. Total time: {datetime.now()-script_start_time}')
+    log.info(
+        f'Script completed. Total time: {datetime.now()-script_start_time}')
+
 
 # json variable to store commit data
 verification_data = {
@@ -126,20 +135,22 @@ verification_data = {
     "invalid_signatures": 0,
     "clone_failures": 0,
     "repos": [],
-    "failed_repos": [] 
+    "failed_repos": []
 }
 
 # Function to clone and verify signatures in a repository
+
+
 def clone_verify(model_id, repo_url, downloads, last_modified):
     '''
     This function clones a repository and verifies the signatures of all commits.
-    
+
     repo_url: The url of the repository to clone.
     '''
     # extract name of repository and create path
     local_name = ''.join(model_id.split('/'))
     repo_path = os.path.join(args.dloc, local_name)
-    
+
     # Delay if necessary
     if args.delay > 0:
         time.sleep(args.delay)
@@ -152,7 +163,6 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
         log.warning(f'Could not clone {model_id}!')
         verification_data["clone_failures"] += 1
         repo = None
-    
 
     # Check for a valid repository
     if repo is not None:
@@ -168,12 +178,14 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
         for commit in repo.iter_commits():
 
             hexsha = commit.hexsha
-            commit_time = commit.committed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            commit_time = commit.committed_datetime.strftime(
+                "%Y-%m-%d %H:%M:%S")
             commit_author = commit.author.name
 
-            # Verify the commit            
+            # Verify the commit
             command = ["git", "verify-commit", "--raw", hexsha]
-            output = subprocess.run(command, cwd=repo_path, capture_output=True, text=True)
+            output = subprocess.run(
+                command, cwd=repo_path, capture_output=True, text=True)
 
             # Check if the commit is signed
             if output.stderr == "" and output.stdout == "":
@@ -237,7 +249,8 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
             tar.close()
             log.info(f'Repository {repo_path} saved as {tar_path}.')
         except:
-            log.warning(f'Repository {repo_path} could not be saved as {tar_path}.')
+            log.warning(
+                f'Repository {repo_path} could not be saved as {tar_path}.')
 
     # Remove the repository
     try:
@@ -245,13 +258,15 @@ def clone_verify(model_id, repo_url, downloads, last_modified):
         log.info(f'Repository {repo_path} removed successfully.')
     except Exception as e:
         log.warning(f'Repository {repo_path} removal failure...')
-    
+
+
 # Read in the simplified csv
 log.info(f'Reading in simplified csv.')
 df = pandas.read_csv(args.source, header=None)
 
 # Start iterating through the repositories
-log.info(f'Iterating through repositories between {args.start} and {args.stop}.')
+log.info(
+    f'Iterating through repositories between {args.start} and {args.stop}.')
 for index, row in df.iloc[args.start:args.stop].iterrows():
     clone_verify(row[0], row[1], row[2], row[3])
 

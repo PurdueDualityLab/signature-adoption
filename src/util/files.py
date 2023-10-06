@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-'''util.py: This script contains utility functions for the signature adoption
-repo.
-'''
+'''files.py: This script contains utility functions for file handling.'''
 
 # Import statements
 import os

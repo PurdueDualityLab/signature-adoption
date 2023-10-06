@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-'''get_packages.py: This script gets the repositories and associated metadata
-for all packages located in the ecosystems database. It then writes the data to
-a JSON file.
+'''packages.py: This script gets the repositories and associated metadata
+for all registries supported by this project.
 '''
 
 # Import statements
@@ -12,7 +11,8 @@ import os
 import argparse
 import logging as log
 from datetime import datetime
-from util import valid_path_create
+from util.files import valid_path_create
+from huggingface.packages import hf_data_dump
 
 # authorship information
 __author__ = "Taylor R. Schorlemmer"
@@ -41,17 +41,23 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Get packages from ecosystems database.'
         'The packages will be written to a Newline Delimited JSON file.')
-    parser.add_argument('--output',
+    parser.add_argument('--output_folder',
                         type=str,
-                        default='./data/packages_-eco-.ndjson',
+                        default='./data/-eco-',
                         help='The path basis to the output files.'
-                        'Defaults to ./data/packages_-eco-.ndjson.'
+                        'Defaults to ./data/-eco-'
                         'The -eco- will be replaced with the ecosystem name.')
+    parser.add_argument('--output_filename',
+                        type=str,
+                        default='packages.ndjson',
+                        help='The name of the output file for each ecosystem.'
+                        'Defaults to packages.ndjson.'
+                        'This will be saved in the output_folder.')
     parser.add_argument('--log',
                         type=str,
-                        default='./logs/get_packages.log',
+                        default='./logs/packages.log',
                         help='The path to the log file.'
-                        'Defaults to ./logs/get_packages.log.')
+                        'Defaults to ./logs/packages.log.')
     parser.add_argument('--pypi',
                         '-p',
                         action='store_true',
@@ -68,10 +74,13 @@ def parse_args():
                         '-m',
                         action='store_true',
                         help='Flag to get packages from Maven.')
+    parser.add_argument('--huggingface',
+                        '-f',
+                        action='store_true',
+                        help='Flag to get packages from Hugging Face.')
     args = parser.parse_args()
 
     # Normalize paths
-    args.output = valid_path_create(args.output)
     args.log = valid_path_create(args.log)
 
     return args
@@ -103,10 +112,20 @@ def log_finish():
              f'{datetime.now()-script_start_time}')
 
 
-# Function to get packages from database
-def get_packages(args):
+# Function to generate output path
+def gen_output_path(output_folder, output_file, eco):
 
-    log.info('Getting packages from database.')
+    output_path = os.path.join(output_folder.replace('-eco-', eco),
+                               output_file)
+    output_path = valid_path_create(output_path)
+
+    return output_path
+
+
+# Function to get packages from ecosystems database
+def get_ecosystems_packages(args):
+
+    log.info('Getting packages from ecosystems.')
 
     # Connect to database
     conn = psycopg2.connect(**db_credentials)
@@ -136,17 +155,16 @@ def get_packages(args):
     if args.maven:
         ecosystems.append('maven')
 
-    # Function to generate output path
-    def gen_output_path(output, eco):
-        return output.replace('-eco-', eco)
-
     # Get packages for each ecosystem
     for ecosystem in ecosystems:
 
         log.info(f'Getting packages for {ecosystem} ecosystem.')
 
         # Open new file for each ecosystem
-        eco_file = gen_output_path(args.output, ecosystem)
+        eco_file = gen_output_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco=ecosystem)
         log.info(f'Opening file {eco_file} for writing.')
         with open(eco_file, 'a') as f:
 
@@ -189,6 +207,28 @@ def get_packages(args):
     conn.close()
 
 
+def get_huggingface_packages(args):
+    '''
+    This function gets the packages from Hugging Face.
+
+    args: the arguments passed to the script
+    '''
+
+    # Check if flag is set
+    if not args.huggingface:
+        return
+
+    hf_data_dump(
+        hf_dump_path=gen_output_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco='huggingface'),
+        simplified_csv_path=gen_output_path(
+            output_folder=args.output_folder,
+            output_file='simplified.csv',
+            eco='huggingface'))
+
+
 # Classic Python main function
 def main():
     # Parse arguments
@@ -197,8 +237,11 @@ def main():
     # Setup logger
     setup_logger(args)
 
-    # Get args packages from database
-    get_packages(args)
+    # Get packages from ecosystems database
+    get_ecosystems_packages(args)
+
+    # Get packages from Hugging Face
+    get_huggingface_packages(args)
 
     # Log finish
     log_finish()

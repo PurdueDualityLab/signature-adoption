@@ -32,10 +32,11 @@ if not os.path.exists(base_path + '/logs'):
 # Set up logger
 log_level = log.DEBUG if __debug__ else log.INFO
 log.basicConfig(filename=log_path,
-                    filemode='a',
-                    level=log_level,
-                    format='%(asctime)s|%(levelname)s|%(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+                filemode='a',
+                level=log_level,
+                format='%(asctime)s|%(levelname)s|%(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S')
+
 
 def log_finish():
     '''
@@ -43,7 +44,9 @@ def log_finish():
     '''
 
     # Log end of script
-    log.info(f'Script completed. Total time: {datetime.now()-script_start_time}')
+    log.info(
+        f'Script completed. Total time: {datetime.now()-script_start_time}')
+
 
 # Log start time
 log.info(f'Starting get_packages script.')
@@ -51,7 +54,8 @@ script_start_time = datetime.now()
 
 # Check for correct number of arguments
 if len(sys.argv) != 2:
-    log.error(f'Incorrect number of arguments. Expected 1, got {len(sys.argv)-1}.')
+    log.error(
+        f'Incorrect number of arguments. Expected 1, got {len(sys.argv)-1}.')
     sys.exit(1)
 
 # Store the package path
@@ -65,15 +69,16 @@ if not os.path.exists(package_path):
 # Extract the date range from the package file name
 date_range = sys.argv[1][sys.argv[1].find('_')+1:sys.argv[1].find('.')]
 adoption_path = base_path + f'/data/adoption_{date_range}.json'
-log.info(f'Checking signature adoption between {date_range} using {package_path}.')
+log.info(
+    f'Checking signature adoption between {date_range} using {package_path}.')
 
 
 def url_construction(digest: str, filename: str) -> str:
     '''
     This function constructs the url for the package file.
-    
+
     digest: The digest of the package file.
-    
+
     filename: The name of the package file.
 
     return: The url for the package file.
@@ -86,7 +91,7 @@ def url_construction(digest: str, filename: str) -> str:
 
     return url
 
-        
+
 # Counters for stats we care about
 total_packages = 0
 total_signed = 0
@@ -113,7 +118,7 @@ with open(package_path, 'r') as f:
     log.info(f'Loaded {len(packages)} packages.')
 
     # Check the adoption of signatures for each package
-    log.info(f'Iterating through packages...')
+    log.info('Iterating through packages...')
     for package in packages:
         total_packages += 1
 
@@ -123,7 +128,7 @@ with open(package_path, 'r') as f:
 
             # Create url and download files
             filename = package['filename']
-            url = url_construction(digest=package['blake2_256_digest'], 
+            url = url_construction(digest=package['blake2_256_digest'],
                                    filename=filename)
             subprocess.run(['wget', url], capture_output=True)
             subprocess.run(['wget', url+'.asc'], capture_output=True)
@@ -133,24 +138,23 @@ with open(package_path, 'r') as f:
             # Run the gpg verify command
             output = subprocess.run(
                 [
-                    "gpg", 
-                    "--keyserver-options", 
-                    "auto-key-retrieve", 
-                    "--keyserver", 
-                    "keyserver.ubuntu.com", 
-                    "--verify", 
-                    f"{filename}.asc", 
+                    "gpg",
+                    "--keyserver-options",
+                    "auto-key-retrieve",
+                    "--keyserver",
+                    "keyserver.ubuntu.com",
+                    "--verify",
+                    f"{filename}.asc",
                     f"{filename}"
-                ], 
+                ],
                 capture_output=True)
-            
+
             # Use regex to check if the signature is valid
             if re.search("Good signature", str(output.stderr)):
                 total_signed_valid += 1
             else:
                 total_signed_invalid += 1
 
-            
             # Add the package to the json structure
             adoption['signed_packages'].append({
                 'name': package['name'],
@@ -169,7 +173,7 @@ with open(package_path, 'r') as f:
             subprocess.run(['rm', '-r', filename])
             subprocess.run(['rm', '-r', filename+'.asc'])
 
-        # If there aren't any signatures, 
+        # If there aren't any signatures,
         else:
             total_unsigned += 1
 
