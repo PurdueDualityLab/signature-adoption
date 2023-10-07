@@ -92,11 +92,15 @@ def adoption(input_file_path,
             package_name = package['name']
 
             # Check for minimum downloads
-            if package['downloads'] < min_downloads:
+            downloads = package['downloads']
+            downloads = 0 if downloads is None else downloads
+            if downloads < min_downloads:
                 continue
 
             # Check for minimum versions
-            if package['versions_count'] < min_versions:
+            versions_count = package['versions_count']
+            versions_count = 0 if versions_count is None else versions_count
+            if versions_count < min_versions:
                 continue
 
             # Get package's signatures
