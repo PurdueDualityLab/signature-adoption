@@ -7,9 +7,7 @@ is also created.
 
 # Import statements
 import json
-import os
 import csv
-from datetime import datetime
 import logging as log
 from huggingface_hub.hf_api import ModelInfo, list_models
 
@@ -18,9 +16,9 @@ __author__ = "Taylor R. Schorlemmer"
 __email__ = "tschorle@purdue.edu"
 
 
-def hf_data_dump(hf_dump_path='packages.ndjson',
-                 hf_token_path='hf_token.txt',
-                 simplified_csv_path='simplified.csv'):
+def packages(hf_dump_path='packages.ndjson',
+             hf_token_path='hf_token.txt',
+             simplified_csv_path='simplified.csv'):
     ''' This function gets the repositories and associated metadata from
     HuggingFace. A full data dump is saved in an ndjson file, and a simplified
     csv is also created.

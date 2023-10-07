@@ -11,8 +11,8 @@ import os
 import argparse
 import logging as log
 from datetime import datetime
-from util.files import valid_path_create
-from huggingface.packages import hf_data_dump
+from util.files import valid_path_create, gen_path
+from huggingface.packages import packages
 
 # authorship information
 __author__ = "Taylor R. Schorlemmer"
@@ -41,18 +41,18 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Get packages from ecosystems database.'
         'The packages will be written to a Newline Delimited JSON file.')
-    parser.add_argument('--output_folder',
+    parser.add_argument('--output-folder',
                         type=str,
                         default='./data/-eco-',
                         help='The path basis to the output files.'
                         'Defaults to ./data/-eco-'
                         'The -eco- will be replaced with the ecosystem name.')
-    parser.add_argument('--output_filename',
+    parser.add_argument('--output-filename',
                         type=str,
                         default='packages.ndjson',
                         help='The name of the output file for each ecosystem.'
                         'Defaults to packages.ndjson.'
-                        'This will be saved in the output_folder.')
+                        'This will be saved in the output-folder.')
     parser.add_argument('--log',
                         type=str,
                         default='./logs/packages.log',
@@ -112,16 +112,6 @@ def log_finish():
              f'{datetime.now()-script_start_time}')
 
 
-# Function to generate output path
-def gen_output_path(output_folder, output_file, eco):
-
-    output_path = os.path.join(output_folder.replace('-eco-', eco),
-                               output_file)
-    output_path = valid_path_create(output_path)
-
-    return output_path
-
-
 # Function to get packages from ecosystems database
 def get_ecosystems_packages(args):
 
@@ -161,10 +151,10 @@ def get_ecosystems_packages(args):
         log.info(f'Getting packages for {ecosystem} ecosystem.')
 
         # Open new file for each ecosystem
-        eco_file = gen_output_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco=ecosystem)
+        eco_file = gen_path(
+            directory=args.output_folder,
+            file=args.output_file,
+            ecosystem=ecosystem)
         log.info(f'Opening file {eco_file} for writing.')
         with open(eco_file, 'a') as f:
 
@@ -218,12 +208,12 @@ def get_huggingface_packages(args):
     if not args.huggingface:
         return
 
-    hf_data_dump(
-        hf_dump_path=gen_output_path(
+    packages(
+        hf_dump_path=gen_path(
             output_folder=args.output_folder,
             output_file=args.output_file,
             eco='huggingface'),
-        simplified_csv_path=gen_output_path(
+        simplified_csv_path=gen_path(
             output_folder=args.output_folder,
             output_file='simplified.csv',
             eco='huggingface'))
