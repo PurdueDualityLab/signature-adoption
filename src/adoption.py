@@ -9,6 +9,7 @@ import argparse
 import logging as log
 from datetime import datetime
 from docker.adoption import adoption as docker_adoption
+from maven.adoption import adoption as maven_adoption
 from util.files import valid_path_create, valid_path
 
 
@@ -20,29 +21,77 @@ __email__ = 'tschorle@purdue.edu'
 script_start_time = datetime.now()
 
 
+def docker(args):
+    '''
+    This function checks the adoption of signatures for packages from Docker
+    Hub.
+
+    args: The arguments passed to the script.
+    '''
+    docker_adoption(input_file_path=args.input_file,
+                    output_file_path=args.output_file,
+                    start=args.start,
+                    end=args.end,
+                    min_downloads=args.min_downloads,
+                    min_versions=args.min_versions)
+
+
+def pypi(args):
+    '''
+    This function checks the adoption of signatures for packages from PyPI.
+
+    args: The arguments passed to the script.
+    '''
+    pass
+
+
+def npm(args):
+    '''
+    This function checks the adoption of signatures for packages from npm.
+
+    args: The arguments passed to the script.
+    '''
+    pass
+
+
+def huggingface(args):
+    '''
+    This function checks the adoption of signatures for packages from
+    HuggingFace.
+
+    args: The arguments passed to the script.
+    '''
+    pass
+
+
+def maven(args):
+    '''
+    This function checks the adoption of signatures for packages from Maven.
+
+    args: The arguments passed to the script.
+    '''
+    maven_adoption(input_file_path=args.input_file,
+                   output_file_path=args.output_file,
+                   start=args.start,
+                   end=args.end,
+                   min_versions=args.min_versions)
+
+
 # Function to parse arguments
 def parse_args():
     ''' This function parses arguments passed to the script.
 
-    returns: args - the arguments passed to the script
+    returns: the arguments passed to the script.
     '''
 
     # Create parser
     parser = argparse.ArgumentParser(
-        description='Check adoption for packages from Docker Hub.'
+        description='Check adoption for packages from a specified registry.'
         'It takes in a newline delimited json file containing a list of '
         'packages and outputs a newline delimited json file containing '
         'a list of packages with their signature adoption status.')
 
-    # Add arguments
-    parser.add_argument('registry',
-                        type=str,
-                        choices=['docker',
-                                 'pypi',
-                                 'npm',
-                                 'huggingface',
-                                 'maven'],
-                        help='The registry to check adoption for.')
+    # global arguments
     parser.add_argument('--input-file',
                         type=str,
                         default='./data/-reg-/packages.ndjson',
@@ -60,28 +109,72 @@ def parse_args():
                         default='./logs/adoption.log',
                         help='The path to the log file. '
                         'Defaults to <./logs/adoption.log.>.')
-    parser.add_argument('--start',
-                        type=int,
-                        default=0,
-                        help='The starting line of the input file. '
-                        'Defaults to 0.')
-    parser.add_argument('--end',
-                        type=int,
-                        default=-1,
-                        help='The ending line of the input file. '
-                        'Defaults to -1 (the last line).')
-    parser.add_argument('--min-downloads',
-                        type=int,
-                        default=1,
-                        help='The minimum number of downloads for a package '
-                        'to be considered for adoption. '
-                        'Defaults to 1.')
-    parser.add_argument('--min-versions',
-                        type=int,
-                        default=1,
-                        help='The minimum number of versions for a package '
-                        'to be considered for adoption. '
-                        'Defaults to 1.')
+
+    # Create subparsers
+    subparsers = parser.add_subparsers(
+        title='registry',
+        description='The registry to check adoption for.',
+        help='This argument selects the registry to check adoption for.',
+        dest='registry',
+        required=True)
+
+    # Docker subparser
+    docker_parser = subparsers.add_parser('docker')
+    docker_parser.set_defaults(func=docker)
+    docker_parser.add_argument('--start',
+                               type=int,
+                               default=0,
+                               help='The starting line of the input file. '
+                               'Defaults to 0.')
+    docker_parser.add_argument('--end',
+                               type=int,
+                               default=-1,
+                               help='The ending line of the input file. '
+                               'Defaults to -1 (the last line).')
+    docker_parser.add_argument('--min-downloads',
+                               type=int,
+                               default=1,
+                               help='The minimum number of downloads for a '
+                               'package to be considered for adoption. '
+                               'Defaults to 1.')
+    docker_parser.add_argument('--min-versions',
+                               type=int,
+                               default=1,
+                               help='The minimum number of versions for a '
+                               'package to be considered for adoption. '
+                               'Defaults to 1.')
+
+    # PyPI subparser
+    pypi_parser = subparsers.add_parser('pypi')
+    pypi_parser.set_defaults(func=pypi)
+
+    # npm subparser
+    npm_parser = subparsers.add_parser('npm')
+    npm_parser.set_defaults(func=npm)
+
+    # HuggingFace subparser
+    huggingface_parser = subparsers.add_parser('huggingface')
+    huggingface_parser.set_defaults(func=huggingface)
+
+    # Maven subparser
+    maven_parser = subparsers.add_parser('maven')
+    maven_parser.set_defaults(func=maven)
+    maven_parser.add_argument('--start',
+                              type=int,
+                              default=0,
+                              help='The starting line of the input file. '
+                              'Defaults to 0.')
+    maven_parser.add_argument('--end',
+                              type=int,
+                              default=-1,
+                              help='The ending line of the input file. '
+                              'Defaults to -1 (the last line).')
+    maven_parser.add_argument('--min-versions',
+                              type=int,
+                              default=1,
+                              help='The minimum number of versions for a '
+                              'package to be considered for adoption. '
+                              'Defaults to 1.')
 
     # Parse arguments
     args = parser.parse_args()
@@ -136,22 +229,8 @@ def main():
     # Setup logger
     setup_logger(args)
 
-    # Check adoption of signatures
-    if args.registry == 'docker':
-        docker_adoption(input_file_path=args.input_file,
-                        output_file_path=args.output_file,
-                        start=args.start,
-                        end=args.end,
-                        min_downloads=args.min_downloads,
-                        min_versions=args.min_versions)
-    elif args.registry == 'pypi':
-        pass
-    elif args.registry == 'npm':
-        pass
-    elif args.registry == 'huggingface':
-        pass
-    elif args.registry == 'maven':
-        pass
+    # Check adoption of signatures the function is set by the subparser
+    args.func(args)
 
     # Log finish
     log_finish()

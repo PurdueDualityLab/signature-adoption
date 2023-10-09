@@ -18,24 +18,47 @@ __author__ = 'Taylor R. Schorlemmer and Andy Ko'
 __email__ = 'tschorle@purdue.edu'
 
 
-def get_files(maven_central_url, package_name, version_number):
+def check_file(maven_central_url, package_name, version_number, file_name,
+               extensions):
     '''
-    This function gets the files for a package from Maven Central.
+    This function checks the adoption of signatures for a file from Maven
+    Central.
 
     maven_central_url: the URL for Maven Central.
 
-    package_name: the name of the package to get the files for.
+    package_name: the name of the package to check the file for.
 
-    version_number: the version number of the package to get the files for.
+    version_number: the version number of the package to check the file for.
 
-    returns: the files for the package and corresponding extensions.
+    file_name: the name of the file to check.
+
+    extensions: all of the extensions for the file.
+
+    returns: The results of a GPG check.
     '''
 
     # Construct the url
     repo_url = maven_central_url + package_name + '/' + version_number + '/'
+    file_url = repo_url + file_name
+
+    # check for a signature file
+    if '.asc' not in extensions:
+        return None
+
+    # Get the file
+
+
+def get_files(version_url):
+    '''
+    This function gets the files for a package from Maven Central.
+
+    version_url: the URL for the package version.
+
+    returns: the files for the package and corresponding extensions.
+    '''
 
     # Get the html from the given url
-    response = requests.get(repo_url)
+    response = requests.get(version_url)
 
     # Check to see if we got a response
     if not response:
@@ -55,19 +78,15 @@ def get_files(maven_central_url, package_name, version_number):
     # Sort the files by length
     file_names = sorted(files, key=len)
 
-    # TODO: This is a hacky way to get the unique files and their extensions.
-    #       There is probably a better way to do this.
-    unique_files = []
+    file_extensions = {}
 
     while len(file_names) > 0:
+        temp = file_names.pop(0)
+        extensions = [f for f in file_names if f.startswith(temp)]
+        file_names = [f for f in file_names if f not in extensions]
+        file_extensions[temp] = [f[len(temp):] for f in extensions]
 
-        name = file_names[0]
-        subset = [f for f in file_names if f.startswith(name)]
-        file_names = [f for f in file_names if f not in subset]
-        subset = [f[len(name):] for f in subset]
-        subset = [f for f in subset if f != '']
-
-        unique_files.append((name, subset))
+    return file_extensions
 
 
 def check_signatures(package):
@@ -90,7 +109,14 @@ def check_signatures(package):
     for version in package['versions']:
         version_number = version['number']
 
-        files = get_files(maven_central_url, package_name, version_number)
+        # Construct the url and get the files
+        package_url = maven_central_url + package_name + '/' + version_number
+        files = get_files(package_url)
+
+        # Iterate through files
+        for file_name, extensions in files.items():
+
+            check_file(package_url, file_name, extensions)
 
 
 def adoption(input_file_path,
