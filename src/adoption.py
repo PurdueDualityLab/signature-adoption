@@ -117,8 +117,7 @@ def parse_args():
         title='registry',
         description='The registry to check adoption for.',
         help='This argument selects the registry to check adoption for.',
-        dest='registry',
-        required=True)
+        dest='registry')
 
     # Docker subparser
     docker_parser = subparsers.add_parser('docker')
