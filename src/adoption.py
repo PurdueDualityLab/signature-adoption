@@ -70,8 +70,10 @@ def maven(args):
 
     args: The arguments passed to the script.
     '''
+    args.download_dir = valid_path_create(args.download_dir, folder=True)
     maven_adoption(input_file_path=args.input_file,
                    output_file_path=args.output_file,
+                   download_path=args.download_dir,
                    start=args.start,
                    end=args.end,
                    min_versions=args.min_versions)
@@ -175,6 +177,12 @@ def parse_args():
                               help='The minimum number of versions for a '
                               'package to be considered for adoption. '
                               'Defaults to 1.')
+    maven_parser.add_argument('--download-dir',
+                              type=str,
+                              default='./data/maven/downloads/',
+                              help='The path to the directory to download '
+                              'files to. Defaults to '
+                              '<./data/maven/downloads/>.')
 
     # Parse arguments
     args = parser.parse_args()

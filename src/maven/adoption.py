@@ -18,34 +18,61 @@ __author__ = 'Taylor R. Schorlemmer and Andy Ko'
 __email__ = 'tschorle@purdue.edu'
 
 
-def check_file(maven_central_url, package_name, version_number, file_name,
-               extensions):
+def check_file(version_url, file_name, extensions, download_path):
     '''
     This function checks the adoption of signatures for a file from Maven
     Central.
 
-    maven_central_url: the URL for Maven Central.
-
-    package_name: the name of the package to check the file for.
-
-    version_number: the version number of the package to check the file for.
+    version_url: the URL for the package version.
 
     file_name: the name of the file to check.
 
     extensions: all of the extensions for the file.
 
+    download_path: the path to the directory to download files to.
+
     returns: The results of a GPG check.
     '''
 
     # Construct the url
-    repo_url = maven_central_url + package_name + '/' + version_number + '/'
-    file_url = repo_url + file_name
+    file_url = version_url + '/' + file_name
+    log.debug(f'Checking file {file_url}.')
 
     # check for a signature file
     if '.asc' not in extensions:
-        return None
+        return None, None
 
-    # Get the file
+    # Get the file and signature file
+    file_path = download_path + file_name
+    signature_path = download_path + file_name + '.asc'
+    log.debug(f'File path: {file_path}')
+    log.debug(f'Signature path: {signature_path}')
+
+    # Get the file and signature
+    subprocess.run(['wget', file_url, '-O', file_path],
+                   capture_output=True)
+    subprocess.run(['wget', file_url+'.asc', '-O', signature_path],
+                   capture_output=True)
+
+    # Run the gpg verify command
+    output = subprocess.run(
+        [
+            "gpg",
+            "--keyserver-options",
+            "auto-key-retrieve",
+            "--keyserver",
+            "keyserver.ubuntu.com",
+            "--verify",
+            f"{signature_path}",
+            f"{file_path}"
+        ],
+        capture_output=True)
+
+    # Remove the files
+    subprocess.run(['rm', '-r', file_path])
+    subprocess.run(['rm', '-r', signature_path])
+
+    return output.stdout.decode('utf-8'), output.stderr.decode('utf-8')
 
 
 def get_files(version_url):
@@ -80,22 +107,26 @@ def get_files(version_url):
 
     file_extensions = {}
 
+    # Iterate through the files and get the extensions
     while len(file_names) > 0:
         temp = file_names.pop(0)
         extensions = [f for f in file_names if f.startswith(temp)]
         file_names = [f for f in file_names if f not in extensions]
         file_extensions[temp] = [f[len(temp):] for f in extensions]
 
+    # Return the files and extensions
     return file_extensions
 
 
-def check_signatures(package):
+def check_signatures(package, download_path):
     '''
     This function gets the signatures for a package from Maven Central.
 
     package: the package to get the signatures for.
 
-    returns: the signatures for the package.
+    download_path: the path to the directory to download files to.
+
+    returns: the package with the signatures added.
     '''
 
     # Maven Central URL
@@ -110,17 +141,30 @@ def check_signatures(package):
         version_number = version['number']
 
         # Construct the url and get the files
-        package_url = maven_central_url + package_name + '/' + version_number
-        files = get_files(package_url)
+        version_url = maven_central_url + package_name + '/' + version_number
+        files = get_files(version_url)
+
+        version['files'] = []
 
         # Iterate through files
         for file_name, extensions in files.items():
 
-            check_file(package_url, file_name, extensions)
+            stdout, stderr = check_file(version_url, file_name,
+                                        extensions, download_path)
+            version['files'].append({
+                'name': file_name,
+                'extensions': extensions,
+                'has_signature': '.asc' in extensions,
+                'stdout': stdout,
+                'stderr': stderr
+            })
+
+    return package
 
 
 def adoption(input_file_path,
              output_file_path,
+             download_path,
              start=0,
              end=-1,
              min_versions=1):
@@ -132,6 +176,8 @@ def adoption(input_file_path,
     input_file_path: the path to the input file.
 
     output_file_path: the path to the output file.
+
+    download_path: the path to the directory to download files to.
 
     start: the line to start on. Default is 0 (start of file).
 
@@ -166,13 +212,18 @@ def adoption(input_file_path,
 
             # Parse line
             package = json.loads(line)
-            package_name = package['name']
 
             # Check for minimum versions
             versions_count = package['versions_count']
             versions_count = 0 if versions_count is None else versions_count
             if versions_count < min_versions:
                 continue
+
+            # Check signatures and write to file
+            json.dump(check_signatures(package, download_path),
+                      output_file,
+                      default=str)
+            output_file.write('\n')
 
     log.info('Finished checking adoption of signatures for packages from '
              'Maven Central.')
