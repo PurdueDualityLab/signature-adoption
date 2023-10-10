@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-'''check_adoption.py: This script checks the adoption of signatures for
-packages from Docker Hub.
+'''adoption.py: This script checks the adoption of signatures for different
+registries.
 '''
 
 # Imports
