@@ -18,6 +18,34 @@ __author__ = 'Taylor R. Schorlemmer and Andy Ko'
 __email__ = 'tschorle@purdue.edu'
 
 
+def download_file(remote_file_url, local_file_path):
+    """
+    This function downloads a file to a local path.
+
+    remote_file_url: url of file to download.
+
+    local_file_path: path to save file to.
+
+    returns: True if file is downloaded, False otherwise.
+    """
+
+    response = requests.get(remote_file_url)
+
+    # Check to see if we got a response
+    if response:
+
+        # Write the file
+        with open(local_file_path, "wb") as local_file:
+            local_file.write(response.content)
+        local_file.close()
+
+        # Return True if file is downloaded
+        return True
+
+    # Return False if file is not downloaded
+    return False
+
+
 def check_file(version_url, file_name, extensions, download_path):
     '''
     This function checks the adoption of signatures for a file from Maven
@@ -48,11 +76,13 @@ def check_file(version_url, file_name, extensions, download_path):
     log.debug(f'File path: {file_path}')
     log.debug(f'Signature path: {signature_path}')
 
-    # Get the file and signature
-    subprocess.run(['wget', file_url, '-O', file_path],
-                   capture_output=True)
-    subprocess.run(['wget', file_url+'.asc', '-O', signature_path],
-                   capture_output=True)
+    # Get the file and signature ensure files are downloaded
+    if not download_file(file_url, file_path):
+        log.warning(f'Could not download file {file_url}.')
+        return None, None
+    if not download_file(file_url+'.asc', signature_path):
+        log.warning(f'Could not download signature {file_url}.asc.')
+        return None, None
 
     # Run the gpg verify command
     output = subprocess.run(
@@ -146,6 +176,10 @@ def check_signatures(package, download_path):
 
         version['files'] = []
 
+        # Check for files
+        if files is None:
+            continue
+
         # Iterate through files
         for file_name, extensions in files.items():
 
@@ -190,38 +224,44 @@ def adoption(input_file_path,
     '''
 
     # Log start of script and open files
-    log.info('Checking adoption of signatures for packages from Docker Hub.')
+    log.info('Checking signature adoption for Maven Central packages.')
     log.info(f'Input file: {input_file_path}')
     log.info(f'Output file: {output_file_path}')
+    log.info(f'Start: {start}')
+    log.info(f'End: {end}')
+    log.info(f'Min Versions: {min_versions}')
 
     with open(input_file_path, 'r') as input_file, \
             open(output_file_path, 'a') as output_file:
 
         # Read input file
-        for i, line in enumerate(input_file):
+        for indx, line in enumerate(input_file):
 
             # Skip lines and check for end
-            if i < start:
+            if indx < start:
                 continue
-            if end != -1 and i > end:
+            if end != -1 and indx >= end:
                 break
-
-            # Log progress
-            if i % 100 == 0:
-                log.info(f'Processing package {i}.')
 
             # Parse line
             package = json.loads(line)
 
+            # Log progress
+            log.info(f'Processing package number {indx}: {package["name"]}.')
+
             # Check for minimum versions
             versions_count = package['versions_count']
             versions_count = 0 if versions_count is None else versions_count
+
             if versions_count < min_versions:
+                log.debug('skipping this package')
                 continue
 
             # Check signatures and write to file
-            json.dump(check_signatures(package, download_path),
-                      output_file,
+            package_and_signatures = check_signatures(package, download_path)
+            log.info('Writing to file')
+            json.dump(obj=package_and_signatures,
+                      fp=output_file,
                       default=str)
             output_file.write('\n')
 

@@ -75,17 +75,17 @@ def adoption(input_file_path,
             open(output_file_path, 'a') as output_file:
 
         # Read input file
-        for i, line in enumerate(input_file):
+        for indx, line in enumerate(input_file):
 
             # Skip lines and check for end
-            if i < start:
+            if indx < start:
                 continue
-            if end != -1 and i > end:
+            if end != -1 and indx >= end:
                 break
 
             # Log progress
-            if i % 100 == 0:
-                log.info(f'Processing package {i}.')
+            if indx % 100 == 0:
+                log.info(f'Processing package {indx}.')
 
             # Parse line
             package = json.loads(line)
