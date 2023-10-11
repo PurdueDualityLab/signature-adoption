@@ -4,6 +4,7 @@
 *.csv
 *.sub
 *.out
+*.sh
 __pycache__/
 data/
 logs/
