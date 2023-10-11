@@ -31,19 +31,21 @@ def download_file(remote_file_url, local_file_path):
 
     response = requests.get(remote_file_url)
 
-    # Check to see if we got a response
-    if response:
+    if not response:
+        log.warning(f'Could not download file {remote_file_url}.')
+        return False
+    if response.status_code != 200:
+        log.warning(f'Could not download file {remote_file_url}. '
+                    f'Code: {response.status_code}')
+        return False
 
-        # Write the file
-        with open(local_file_path, "wb") as local_file:
-            local_file.write(response.content)
-        local_file.close()
+    # Write the file
+    with open(local_file_path, "wb") as local_file:
+        local_file.write(response.content)
+    local_file.close()
 
-        # Return True if file is downloaded
-        return True
-
-    # Return False if file is not downloaded
-    return False
+    # Return True if file is downloaded
+    return True
 
 
 def check_file(version_url, file_name, extensions, download_path):
@@ -246,9 +248,6 @@ def adoption(input_file_path,
             # Parse line
             package = json.loads(line)
 
-            # Log progress
-            log.info(f'Processing package number {indx}: {package["name"]}.')
-
             # Check for minimum versions
             versions_count = package['versions_count']
             versions_count = 0 if versions_count is None else versions_count
@@ -258,12 +257,16 @@ def adoption(input_file_path,
                 continue
 
             # Check signatures and write to file
+            log.info(f'Processing package number {indx}: {package["name"]}')
             package_and_signatures = check_signatures(package, download_path)
+
+            # Write to file
             log.info('Writing to file')
             json.dump(obj=package_and_signatures,
                       fp=output_file,
                       default=str)
             output_file.write('\n')
+            output_file.flush()  # force write to disk
 
     log.info('Finished checking adoption of signatures for packages from '
              'Maven Central.')
