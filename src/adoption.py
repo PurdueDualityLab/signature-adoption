@@ -10,6 +10,7 @@ import logging as log
 from datetime import datetime
 from docker.adoption import adoption as docker_adoption
 from maven.adoption import adoption as maven_adoption
+from npm.adoption import adoption as npm_adoption
 from util.files import valid_path_create, valid_path
 
 
@@ -51,7 +52,14 @@ def npm(args):
 
     args: The arguments passed to the script.
     '''
-    pass
+    args.download_dir = valid_path_create(args.download_dir, folder=True)
+    npm_adoption(input_file_path=args.input_file,
+                 output_file_path=args.output_file,
+                 download_path=args.download_dir,
+                 start=args.start,
+                 end=args.end,
+                 min_donwloads=args.min_downloads,
+                 min_versions=args.min_versions)
 
 
 def huggingface(args):
@@ -152,6 +160,34 @@ def parse_args():
     # npm subparser
     npm_parser = subparsers.add_parser('npm')
     npm_parser.set_defaults(func=npm)
+    npm_parser.add_argument('--start',
+                            type=int,
+                            default=0,
+                            help='The starting line of the input file. '
+                            'Defaults to 0.')
+    npm_parser.add_argument('--end',
+                            type=int,
+                            default=-1,
+                            help='The ending line of the input file. '
+                            'Defaults to -1 (the last line).')
+    npm_parser.add_argument('--min-versions',
+                            type=int,
+                            default=2,
+                            help='The minimum number of versions for a '
+                            'package to be considered for adoption. '
+                            'Defaults to 2.')
+    npm_parser.add_argument('--min-downloads',
+                            type=int,
+                            default=20,
+                            help='The minimum number of downloads for a '
+                            'package to be considered for adoption. '
+                            'Defaults to 20.')
+    npm_parser.add_argument('--download-dir',
+                            type=str,
+                            default='./data/npm/downloads/',
+                            help='The path to the directory to download '
+                            'files to. Defaults to '
+                            '<./data/npm/downloads/>.')
 
     # HuggingFace subparser
     huggingface_parser = subparsers.add_parser('huggingface')
