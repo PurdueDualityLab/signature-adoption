@@ -238,7 +238,7 @@ def check_signatures(package, download_path, ecdsa_public_key):
     metadata = get_package_metadata(package['name'])
 
     # Check for valid metadata
-    if metadata is None:
+    if metadata is None or 'versions' not in metadata:
         return None
 
     # Iterate through versions
