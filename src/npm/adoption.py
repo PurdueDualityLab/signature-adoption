@@ -10,8 +10,11 @@ import json
 import os
 import subprocess
 import requests
-import ecdsa
-from hashlib import sha256
+import base64
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 import logging as log
 
 
@@ -65,19 +68,33 @@ def check_ecdsa(package_name_version,
 
     ecdsa_public_keys: the public ECDSA keys from NPM.
 
-    returns: the output of ecdsa signature verification.
+    returns: True if the signature is valid, False otherwise.
     '''
 
-    message = f'{package_name_version}:{integrity}'.encode('utf-8')
+    log.info('Checking ECDSA signature for '
+             f'{package_name_version}')
 
-    vk = ecdsa.VerifyingKey.from_string(bytes.fromhex(ecdsa_public_keys[0]),
-                                        curve=ecdsa.NIST256p,
-                                        hashfunc=sha256)
-    result = vk.verify(bytes.fromhex(signatures[0]), message)
-    print(result)
+    # Create the data that is signed
+    data = f'{package_name_version}:{integrity}'.encode('utf-8')
 
+    # Get the public key and load it in
+    public_key = base64.b64decode(ecdsa_public_keys['key'])
+    public_key = serialization.load_der_public_key(
+        public_key, backend=default_backend())
+
+    # Get the signature and decode it
+    data_signature = base64.b64decode(signatures[0]['sig'])
+
+    # Verify the signature: if we have an exception, the signature is invalid
+    result = True
+    try:
+        public_key.verify(data_signature, data,
+                          ec.ECDSA(hashes.SHA256()))
+    except Exception:
+        result = False
+
+    # Return result
     return result
-
 
 
 def check_gpg(package_name_version,
@@ -98,14 +115,17 @@ def check_gpg(package_name_version,
 
     returns: The output of the GPG command.
     '''
+    log.info('Checking PGP signature for '
+             f'{package_name_version}')
 
     # Save signature and integrity to files
-    log.info('Saving signature and integrity to file for '
-             f'{package_name_version}')
+    log.debug('Saving signature and integrity to file for '
+              f'{package_name_version}')
+    clean_name = package_name_version.replace('/', '_')
     signature_path = os.path.join(download_path,
-                                  f'{package_name_version}.sig')
+                                  f'{clean_name}.sig')
     integrity_path = os.path.join(download_path,
-                                  f'{package_name_version}')
+                                  f'{clean_name}')
 
     with open(signature_path, 'w') as signature_file:
         signature_file.write(signature)
@@ -113,15 +133,16 @@ def check_gpg(package_name_version,
         integrity_file.write(f'{package_name_version}:{integrity}')
 
     # Check signature
-    log.info('Checking signature for '
-             f'{package_name_version}')
-    result = subprocess.run(['gpg', '--verify', '--verbose',
-                             signature_path, integrity_path],
+    result = subprocess.run(['gpg',
+                             '--verify',
+                             '--verbose',
+                             signature_path,
+                             integrity_path],
                             capture_output=True)
 
     # Remove files
-    log.info('Removing signature and integrity files for '
-             f'{package_name_version}')
+    log.debug('Removing signature and integrity files for '
+              f'{package_name_version}')
     os.remove(signature_path)
     os.remove(integrity_path)
 
@@ -165,6 +186,7 @@ def public_ecdsa_keys():
     returns: the public keys from NPM.
     '''
 
+    log.info('Getting public ECDSA keys from NPM.')
     url = "https://registry.npmjs.org/-/npm/v1/keys"
     response = requests.get(url)
     response.raise_for_status()
@@ -182,7 +204,7 @@ def public_gpg_keys(download_dir):
     '''
     key_url = "https://keybase.io/npmregistry/pgp_keys.asc"
 
-    key_path = os.join(download_dir, "npm_pub_key.asc")
+    key_path = os.path.join(download_dir, "npm_pub_key.asc")
 
     # Fetch the key
     downloaded = download_file(key_url, key_path)
@@ -191,7 +213,11 @@ def public_gpg_keys(download_dir):
         return
 
     # Add the key to the keyring
-    subprocess.run(['gpg', '--import', key_path])
+    result = subprocess.run(['gpg', '--import', key_path], capture_output=True)
+
+    log.info('Added public key from NPM to keyring.')
+    log.debug(f'stdout: {result.stdout.decode("utf-8")}')
+    log.debug(f'stderr: {result.stderr.decode("utf-8")}')
 
 
 def check_signatures(package, download_path, ecdsa_public_key):
@@ -204,11 +230,16 @@ def check_signatures(package, download_path, ecdsa_public_key):
 
     ecdsa_public_key: the public ECDSA keys from NPM.
 
-    returns: the package with the signatures added.
+    returns: the package with the signatures added. None if there is an issue
+    getting the metadata.
     '''
 
     # Get metadata
     metadata = get_package_metadata(package['name'])
+
+    # Check for valid metadata
+    if metadata is None:
+        return None
 
     # Iterate through versions
     for version in package['versions']:
@@ -270,6 +301,7 @@ def check_signatures(package, download_path, ecdsa_public_key):
                      f'{package["name"]}@{version_number}.')
 
         # Add signatures to package and update dist
+        version['signatures'] = {}
         version['signatures']['dist'] = version_metadata['dist']
         version['signatures']['pgp'] = pgp
         version['signatures']['ecdsa'] = ecdsa
@@ -341,7 +373,7 @@ def adoption(input_file_path,
             versions_count = 0 if versions_count is None else versions_count
 
             if versions_count < min_versions:
-                log.debug('skipping this package')
+                log.debug(f'Skipping {package["name"]} - versions too low.')
                 continue
 
             # Check for minimum downloads
@@ -349,7 +381,7 @@ def adoption(input_file_path,
             downloads = 0 if downloads is None else downloads
 
             if downloads < min_downloads:
-                log.debug('skipping this package')
+                log.debug(f'Skipping {package["name"]} - downloads too low.')
                 continue
 
             # Check signatures and write to file
@@ -357,9 +389,13 @@ def adoption(input_file_path,
             package_with_signatures = check_signatures(package,
                                                        download_path,
                                                        ecdsa_public_key)
+            if package_with_signatures is None:
+                log.warning(f'Skipping {package["name"]} - '
+                            'could not get metadata.')
+                continue
 
             # Write to file
-            log.info('Writing to file')
+            log.info(f'Writing package to {output_file_path}')
             json.dump(obj=package_with_signatures,
                       fp=output_file,
                       default=str)

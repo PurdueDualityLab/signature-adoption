@@ -58,7 +58,7 @@ def npm(args):
                  download_path=args.download_dir,
                  start=args.start,
                  end=args.end,
-                 min_donwloads=args.min_downloads,
+                 min_downloads=args.min_downloads,
                  min_versions=args.min_versions)
 
 
@@ -116,9 +116,10 @@ def parse_args():
                         'The -reg- will be replaced with the registry name.')
     parser.add_argument('--log',
                         type=str,
-                        default='./logs/adoption.log',
+                        default='./logs/-reg-/adoption.log',
                         help='The path to the log file. '
-                        'Defaults to <./logs/adoption.log.>.')
+                        'Defaults to <./logs/-reg-/adoption.log>. '
+                        'The -reg- will be replaced with the registry name.')
 
     # Create subparsers
     subparsers = parser.add_subparsers(
@@ -223,7 +224,8 @@ def parse_args():
     args = parser.parse_args()
 
     # Normalize paths
-    args.log = valid_path_create(args.log)
+    args.log = valid_path_create(
+        args.log.replace('-reg-', args.registry))
     args.output_file = valid_path_create(
         args.output_file.replace('-reg-', args.registry))
     args.input_file = valid_path(
