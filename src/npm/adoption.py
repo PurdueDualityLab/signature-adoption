@@ -121,7 +121,11 @@ def check_gpg(package_name_version,
     # Save signature and integrity to files
     log.debug('Saving signature and integrity to file for '
               f'{package_name_version}')
+
+    # Create clean name with no slashes and limit to 20 characters
     clean_name = package_name_version.replace('/', '_')
+    clean_name = clean_name[:20]
+
     signature_path = os.path.join(download_path,
                                   f'{clean_name}.sig')
     integrity_path = os.path.join(download_path,
@@ -162,7 +166,13 @@ def get_package_metadata(package_name):
 
     # Fetch the package's signature and integrity value
     url = f"https://registry.npmjs.org/{package_name}"
-    response = requests.get(url)
+
+    try:
+        response = requests.get(url)
+    except Exception as e:
+        log.error(f'Connection error for package {package_name}. '
+                  f'Error: {e}')
+        return None
 
     # Check to see if we got a response
     if not response:
