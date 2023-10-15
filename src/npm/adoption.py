@@ -147,8 +147,17 @@ def check_gpg(package_name_version,
     # Remove files
     log.debug('Removing signature and integrity files for '
               f'{package_name_version}')
-    os.remove(signature_path)
-    os.remove(integrity_path)
+    try:
+        os.remove(signature_path)
+    except Exception as e:
+        log.error(f'Could not remove sig file for {package_name_version}. '
+                  f'File: {signature_path}. Error: {e}')
+    try:
+        os.remove(integrity_path)
+    except Exception as e:
+        log.error(f'Could not remove integ file for {package_name_version}. '
+                  f'File: {integrity_path}. Error: {e}')
+
 
     # Return output
     return {'stdout': result.stdout.decode('utf-8'),
