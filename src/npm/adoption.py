@@ -122,9 +122,9 @@ def check_gpg(package_name_version,
     log.debug('Saving signature and integrity to file for '
               f'{package_name_version}')
 
-    # Create clean name with no slashes and limit to 20 characters
+    # Create clean name with no slashes and limit to 32 characters
     clean_name = package_name_version.replace('/', '_')
-    clean_name = clean_name[:20]
+    clean_name = clean_name[:32]
 
     signature_path = os.path.join(download_path,
                                   f'{clean_name}.sig')
