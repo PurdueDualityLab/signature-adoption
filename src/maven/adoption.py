@@ -20,7 +20,7 @@ __email__ = 'tschorle@purdue.edu'
 
 def download_file(remote_file_url, local_file_path):
     """
-    This function downloads a file to a local path.
+    This function downloads a file to a local path using wget.
 
     remote_file_url: url of file to download.
 
@@ -28,21 +28,17 @@ def download_file(remote_file_url, local_file_path):
 
     returns: True if file is downloaded, False otherwise.
     """
- 
-    response = requests.get(remote_file_url)
 
-    if not response:
+    # Construct the wget command
+    command = ['wget', '-O', local_file_path, remote_file_url]
+
+    # Run the command
+    output = subprocess.run(command, capture_output=True)
+
+    # Check for errors
+    if output.returncode != 0:
         log.warning(f'Could not download file {remote_file_url}.')
         return False
-    if response.status_code != 200:
-        log.warning(f'Could not download file {remote_file_url}. '
-                    f'Code: {response.status_code}')
-        return False
-
-    # Write the file
-    with open(local_file_path, "wb") as local_file:
-        local_file.write(response.content)
-    local_file.close()
 
     # Return True if file is downloaded
     return True
