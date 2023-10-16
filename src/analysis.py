@@ -19,7 +19,21 @@ def pypi(args):
 
     args: The arguments passed in from the command line.
     '''
-    pass
+
+    # Normalize paths
+    output_file = valid_path_create(
+        args.output_file.replace('-reg-', args.registry))
+    input_file = valid_path(
+        args.input_file.replace('-reg-', args.registry))
+
+    # create a summary dictionary
+    summary = {
+        'total_packages': 0,
+        'total_versions': 0,
+        'total_signatures': 0,
+        'latest_signed': 0,
+        'days': [],
+    }
 
 
 def maven(args):
@@ -35,6 +49,26 @@ def npm(args):
 
     args: The arguments passed in from the command line.
     '''
+    # Normalize paths
+    output_file = valid_path_create(
+        args.output_file.replace('-reg-', args.registry))
+    input_file = valid_path(
+        args.input_file.replace('-reg-', args.registry))
+
+    # create a summary dictionary
+    summary = {
+        'total_packages': 0,
+        'total_versions': 0,
+        'pgp': {
+            'total_signatures': 0,
+            'latest_signed': 0,
+        },
+        'ecdsa': {
+            'total_signatures': 0,
+            'latest_signed': 0,
+        },
+    }
+
     pass
 
 
@@ -103,12 +137,6 @@ def parse_args():
 
     args = parser.parse_args()
 
-    # Normalize paths
-    args.output_file = valid_path_create(
-        args.output_file.replace('-reg-', args.registry))
-    args.input_file = valid_path(
-        args.input_file.replace('-reg-', args.registry))
-
     return args
 
 
@@ -130,6 +158,7 @@ def main():
         huggingface(args)
     if args.docker:
         docker(args)
+
 
 # Classic Python main function
 if __name__ == '__main__':
