@@ -28,17 +28,20 @@ def download_file(remote_file_url, local_file_path):
 
     returns: True if file is downloaded, False otherwise.
     """
+    response = requests.get(remote_file_url)
 
-    # Construct the wget command
-    command = ['wget', '-O', local_file_path, remote_file_url]
-
-    # Run the command
-    output = subprocess.run(command, capture_output=True)
-
-    # Check for errors
-    if output.returncode != 0:
-        log.warning(f'Could not download file {remote_file_url}.')
+    if not response:
+        log.error(f'Could not download file {remote_file_url}.')
         return False
+    if response.status_code != 200:
+        log.error(f'Could not download file {remote_file_url}. '
+                  f'Code: {response.status_code}')
+        return False
+
+    # Write the file
+    with open(local_file_path, "wb") as local_file:
+        local_file.write(response.content)
+    local_file.close()
 
     # Return True if file is downloaded
     return True
@@ -172,11 +175,12 @@ def check_signatures(package, download_path):
         version_url = maven_central_url + package_name + '/' + version_number
         files = get_files(version_url)
 
-        version['files'] = []
-
         # Check for files
         if files is None:
+            log.warning(f'Could not get files for {version_url}.')
             continue
+
+        version['files'] = []
 
         # Iterate through files
         for file_name, extensions in files.items():
