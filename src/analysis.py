@@ -6,6 +6,7 @@ with data.'''
 # Imports
 import argparse
 from datetime import datetime
+import json
 from util.files import valid_path_create, valid_path
 
 
@@ -21,10 +22,10 @@ def pypi(args):
     '''
 
     # Normalize paths
-    output_file = valid_path_create(
-        args.output_file.replace('-reg-', args.registry))
+    summary_file = valid_path_create(
+        args.summary.replace('-reg-', 'pypi'))
     input_file = valid_path(
-        args.input_file.replace('-reg-', args.registry))
+        args.input_file.replace('-reg-', 'pypi'))
 
     # create a summary dictionary
     summary = {
@@ -32,8 +33,32 @@ def pypi(args):
         'total_versions': 0,
         'total_signatures': 0,
         'latest_signed': 0,
-        'days': [],
     }
+
+    package_names = {}
+
+    # open the input file
+    with open(input_file, 'r') as f:
+        # iterate through the file
+        for line in f:
+            # load the line as a json object
+            package = json.loads(line)
+
+            # increment the total packages
+            package_names.add(package['name'])
+
+            # increment the total versions
+            summary['total_versions'] += len(package['versions'])
+
+            # iterate through the versions
+            for version in package['versions']:
+                # increment the total signatures
+                summary['total_signatures'] += len(version['signatures'])
+
+                # check if the version is the latest
+                if version['latest']:
+                    # increment the latest signed
+                    summary['latest_signed'] += len(version['signatures'])
 
 
 def maven(args):
@@ -50,10 +75,10 @@ def npm(args):
     args: The arguments passed in from the command line.
     '''
     # Normalize paths
-    output_file = valid_path_create(
-        args.output_file.replace('-reg-', args.registry))
+    summary_file = valid_path_create(
+        args.summary.replace('-reg-', 'npm'))
     input_file = valid_path(
-        args.input_file.replace('-reg-', args.registry))
+        args.input_file.replace('-reg-', 'npm'))
 
     # create a summary dictionary
     summary = {
@@ -65,11 +90,47 @@ def npm(args):
         },
         'ecdsa': {
             'total_signatures': 0,
+            'total_good': 0,
             'latest_signed': 0,
         },
+        'total_unsigned': 0,
     }
 
-    pass
+    # open the input file
+    with open(input_file, 'r') as f:
+
+        for line in f:
+
+            package = json.loads(line)
+
+            # increment the total packages
+            summary['total_packages'] += 1
+
+            # increment the total versions
+            summary['total_versions'] += len(package['versions'])
+
+            # iterate through the versions
+            for version in package['versions']:
+                signatures = version['signatures']
+
+                if signatures is None:
+                    summary['total_unsigned'] += 1
+                    continue
+                if signatures['ecdsa']:
+                    summary['ecdsa']['total_signatures'] += 1
+                    if signatures['ecdsa'] is True:
+                        summary['ecdsa']['total_good'] += 1
+                    if version['number'] == package['latest_release_number']:
+                        summary['ecdsa']['latest_signed'] += 1
+                if signatures['pgp']:
+
+
+
+
+
+
+
+
 
 
 def huggingface(args):
@@ -108,11 +169,11 @@ def parse_args():
                         help='The name of the input file for the registry. '
                         'Defaults to <./data/-reg-/packages.ndjson>. '
                         'The -reg- will be replaced with the registry name.')
-    parser.add_argument('--output-file',
+    parser.add_argument('--summary-file',
                         type=str,
-                        default='./data/-reg-/adoption.ndjson',
-                        help='The name of the output file for the registry. '
-                        'Defaults to <./data/-reg-/adoption.ndjson>. '
+                        default='./data/-reg-/summary.json',
+                        help='The name of the summary file for the registry. '
+                        'Defaults to <./data/-reg-/summary.json>. '
                         'The -reg- will be replaced with the registry name.')
     parser.add_argument('--maven'
                         '-m',
