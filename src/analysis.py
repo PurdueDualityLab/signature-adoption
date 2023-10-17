@@ -7,12 +7,60 @@ with data.'''
 import argparse
 from datetime import datetime
 import json
+from enum import Enum
 from util.files import valid_path_create, valid_path
 
 
 # Author information
 __author__ = 'Taylor R. Schorlemmer'
 __email__ = 'tschorle@purdue.edu'
+
+
+class PGP_Sig_Status(Enum):
+    '''
+    This is an enum to represent the status of a PGP signature.
+    '''
+    GOOD = 1
+    BAD = 2
+    GOOD_EXPIRED = 3
+    GOOD_NO_PUB = 4
+    BAD_EXPIRED = 5
+    BAD_NO_PUB = 6
+    UNVERIFIABLE = 7
+    UNVERIFIABLE_EXPIRED = 8
+    UNVERIFIABLE_NO_PUB = 9
+
+
+pnt = True
+
+
+def check_pgp(stderr):
+    '''
+    This function is used to check if a PGP signature is valid.
+
+    stderr: The stderr output from the gpg command.
+
+    returns: info about signature validity
+    '''
+
+    if 'Good signature' in stderr:
+        if 'No public key' in stderr:
+            return PGP_Sig_Status.GOOD_NO_PUB
+        elif 'expired' in stderr:
+            return PGP_Sig_Status.GOOD_EXPIRED
+        return PGP_Sig_Status.GOOD
+    elif 'BAD signature' in stderr:
+        if 'No public key' in stderr:
+            return PGP_Sig_Status.BAD_NO_PUB
+        elif 'expired' in stderr:
+            return PGP_Sig_Status.BAD_EXPIRED
+        return PGP_Sig_Status.BAD
+    else:
+        if 'No public key' in stderr:
+            return PGP_Sig_Status.UNVERIFIABLE_NO_PUB
+        elif 'expired' in stderr:
+            return PGP_Sig_Status.UNVERIFIABLE_EXPIRED
+        return PGP_Sig_Status.UNVERIFIABLE
 
 
 def pypi(args):
@@ -29,9 +77,20 @@ def pypi(args):
 
     # create a summary dictionary
     summary = {
+        'total_packages': 0,
+        'total_versions': 0,
         'total_files': 0,
         'total_signatures': 0,
         'total_unsigned': 0,
+        PGP_Sig_Status.GOOD.name: 0,
+        PGP_Sig_Status.BAD.name: 0,
+        PGP_Sig_Status.GOOD_EXPIRED.name: 0,
+        PGP_Sig_Status.GOOD_NO_PUB.name: 0,
+        PGP_Sig_Status.BAD_EXPIRED.name: 0,
+        PGP_Sig_Status.BAD_NO_PUB.name: 0,
+        PGP_Sig_Status.UNVERIFIABLE.name: 0,
+        PGP_Sig_Status.UNVERIFIABLE_EXPIRED.name: 0,
+        PGP_Sig_Status.UNVERIFIABLE_NO_PUB.name: 0,
     }
 
     # open the input file
@@ -41,13 +100,22 @@ def pypi(args):
             # load the line as a json object
             package = json.loads(line)
 
-            # increment the total versions
-            summary['total_files'] += 1
+            # increment the total packages
+            summary['total_packages'] += 1
 
-            if package['has_signature'] and package['signature'] is not None:
-                summary['total_signatures'] += 1
-            else:
-                summary['total_unsigned'] += 1
+            for version_name, files in package['versions'].items():
+                summary['total_versions'] += 1
+
+                for file in files:
+                    summary['total_files'] += 1
+
+                    if file['has_signature'] and file['signature'] is not None:
+                        summary['total_signatures'] += 1
+
+                        summary[check_pgp(
+                            file['signature']['stderr']).name] += 1
+                    else:
+                        summary['total_unsigned'] += 1
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
@@ -83,6 +151,7 @@ def maven(args):
 
             # increment the total versions
             summary['total_packages'] += 1
+            missing = False
 
             for version in package['versions']:
                 summary['total_versions'] += 1
@@ -90,10 +159,16 @@ def maven(args):
                 for file in version['files']:
                     summary['total_files'] += 1
 
-                    if file['has_signature']:
+                    if file['has_signature'] \
+                            and file['stderr'] is not None \
+                            and file['stderr'] != '':
+
                         summary['total_signatures'] += 1
                     else:
                         summary['total_unsigned'] += 1
+
+            if missing:
+                print(package['name'])
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
@@ -115,12 +190,8 @@ def npm(args):
     summary = {
         'total_packages': 0,
         'total_versions': 0,
-        'pgp': {
-            'total_signatures': 0,
-        },
-        'ecdsa': {
-            'total_signatures': 0,
-        },
+        'pgp_total_signatures': 0,
+        'ecdsa_total_signatures': 0,
         'total_unsigned': 0,
     }
 
@@ -175,6 +246,11 @@ def huggingface(args):
         'total_commits': 0,
         'total_signatures': 0,
         'total_unsigned': 0,
+        'errsig': 0,
+        'bad': 0,
+        'good': 0,
+        'ambig': 0,
+        'expire': 0,
     }
 
     # open the input file
@@ -194,6 +270,19 @@ def huggingface(args):
                     summary['total_unsigned'] += 1
                 else:
                     summary['total_signatures'] += 1
+                    if 'ERRSIG' in commit['error']:
+                        summary['errsig'] += 1
+                    elif 'bad signature' in commit['error']:
+                        summary['bad'] += 1
+                    elif 'GOODSIG' in commit['error']:
+                        summary['good'] += 1
+                    elif 'ambiguous' in commit['error']:
+                        summary['ambig'] += 1
+                    elif 'KEYEXPIRED' in commit['error']:
+                        summary['expire'] += 1
+                    else:
+
+                        print(commit['error'])
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
