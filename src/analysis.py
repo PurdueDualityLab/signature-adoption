@@ -29,13 +29,10 @@ def pypi(args):
 
     # create a summary dictionary
     summary = {
-        'total_packages': 0,
-        'total_versions': 0,
+        'total_files': 0,
         'total_signatures': 0,
-        'latest_signed': 0,
+        'total_unsigned': 0,
     }
-
-    package_names = {}
 
     # open the input file
     with open(input_file, 'r') as f:
@@ -44,21 +41,17 @@ def pypi(args):
             # load the line as a json object
             package = json.loads(line)
 
-            # increment the total packages
-            package_names.add(package['name'])
-
             # increment the total versions
-            summary['total_versions'] += len(package['versions'])
+            summary['total_files'] += 1
 
-            # iterate through the versions
-            for version in package['versions']:
-                # increment the total signatures
-                summary['total_signatures'] += len(version['signatures'])
+            if package['has_signature'] and package['signature'] is not None:
+                summary['total_signatures'] += 1
+            else:
+                summary['total_unsigned'] += 1
 
-                # check if the version is the latest
-                if version['latest']:
-                    # increment the latest signed
-                    summary['latest_signed'] += len(version['signatures'])
+    # write the summary to the summary file
+    with open(summary_file, 'w') as f:
+        json.dump(summary, f, indent=4)
 
 
 def maven(args):
@@ -66,7 +59,45 @@ def maven(args):
 
     args: The arguments passed in from the command line.
     '''
-    pass
+    # Normalize paths
+    summary_file = valid_path_create(
+        args.summary.replace('-reg-', 'maven'))
+    input_file = valid_path(
+        args.input_file.replace('-reg-', 'maven'))
+
+    # create a summary dictionary
+    summary = {
+        'total_packages': 0,
+        'total_versions': 0,
+        'total_files': 0,
+        'total_signatures': 0,
+        'total_unsigned': 0,
+    }
+
+    # open the input file
+    with open(input_file, 'r') as f:
+        # iterate through the file
+        for line in f:
+            # load the line as a json object
+            package = json.loads(line)
+
+            # increment the total versions
+            summary['total_packages'] += 1
+
+            for version in package['versions']:
+                summary['total_versions'] += 1
+
+                for file in version['files']:
+                    summary['total_files'] += 1
+
+                    if file['has_signature']:
+                        summary['total_signatures'] += 1
+                    else:
+                        summary['total_unsigned'] += 1
+
+    # write the summary to the summary file
+    with open(summary_file, 'w') as f:
+        json.dump(summary, f, indent=4)
 
 
 def npm(args):
@@ -86,12 +117,9 @@ def npm(args):
         'total_versions': 0,
         'pgp': {
             'total_signatures': 0,
-            'latest_signed': 0,
         },
         'ecdsa': {
             'total_signatures': 0,
-            'total_good': 0,
-            'latest_signed': 0,
         },
         'total_unsigned': 0,
     }
@@ -106,31 +134,28 @@ def npm(args):
             # increment the total packages
             summary['total_packages'] += 1
 
-            # increment the total versions
-            summary['total_versions'] += len(package['versions'])
-
             # iterate through the versions
             for version in package['versions']:
+
+                if 'signatures' not in version:
+                    continue
+
+                summary['total_versions'] += 1
+
                 signatures = version['signatures']
 
-                if signatures is None:
+                if signatures is None or (
+                        signatures['ecdsa'] is None and signatures['pgp'] is None):
                     summary['total_unsigned'] += 1
                     continue
-                if signatures['ecdsa']:
+                if signatures['ecdsa'] is not None:
                     summary['ecdsa']['total_signatures'] += 1
-                    if signatures['ecdsa'] is True:
-                        summary['ecdsa']['total_good'] += 1
-                    if version['number'] == package['latest_release_number']:
-                        summary['ecdsa']['latest_signed'] += 1
-                if signatures['pgp']:
+                if signatures['pgp'] is not None:
+                    summary['pgp']['total_signatures'] += 1
 
-
-
-
-
-
-
-
+    # write the summary to the summary file
+    with open(summary_file, 'w') as f:
+        json.dump(summary, f, indent=4)
 
 
 def huggingface(args):
@@ -138,7 +163,41 @@ def huggingface(args):
 
     args: The arguments passed in from the command line.
     '''
-    pass
+    # Normalize paths
+    summary_file = valid_path_create(
+        args.summary.replace('-reg-', 'huggingface'))
+    input_file = valid_path(
+        args.input_file.replace('-reg-', 'huggingface'))
+
+    # create a summary dictionary
+    summary = {
+        'total_packages': 0,
+        'total_commits': 0,
+        'total_signatures': 0,
+        'total_unsigned': 0,
+    }
+
+    # open the input file
+    with open(input_file, 'r') as f:
+        # iterate through the file
+        for line in f:
+            # load the line as a json object
+            package = json.loads(line)
+
+            # increment the total versions
+            summary['total_packages'] += 1
+
+            for commit in package['commits']:
+                summary['total_commits'] += 1
+
+                if commit['output'] == '' and commit['error'] == '':
+                    summary['total_unsigned'] += 1
+                else:
+                    summary['total_signatures'] += 1
+
+    # write the summary to the summary file
+    with open(summary_file, 'w') as f:
+        json.dump(summary, f, indent=4)
 
 
 def docker(args):
@@ -146,7 +205,40 @@ def docker(args):
 
     args: The arguments passed in from the command line.
     '''
-    pass
+    # Normalize paths
+    summary_file = valid_path_create(
+        args.summary.replace('-reg-', 'docker'))
+    input_file = valid_path(
+        args.input_file.replace('-reg-', 'docker'))
+
+    # create a summary dictionary
+    summary = {
+        'total_packages': 0,
+        'total_versions': 0,
+        'total_signatures': 0,
+        'total_unsigned': 0,
+    }
+
+    # open the input file
+    with open(input_file, 'r') as f:
+        # iterate through the file
+        for line in f:
+            # load the line as a json object
+            package = json.loads(line)
+
+            # increment the total versions
+            summary['total_packages'] += 1
+            summary['total_versions'] += package['versions_count']
+
+            if len(package['signatures']) == 0:
+                summary['total_unsigned'] += package['versions_count']
+            else:
+                summary['total_signatures'] += len(
+                    package['signatures'][0]['SignedTags'])
+
+    # write the summary to the summary file
+    with open(summary_file, 'w') as f:
+        json.dump(summary, f, indent=4)
 
 
 # Function to parse arguments
@@ -165,17 +257,18 @@ def parse_args():
     # global arguments
     parser.add_argument('--input-file',
                         type=str,
-                        default='./data/-reg-/packages.ndjson',
+                        default='./data/-reg-/adoption.ndjson',
                         help='The name of the input file for the registry. '
-                        'Defaults to <./data/-reg-/packages.ndjson>. '
+                        'Defaults to <./data/-reg-/adoption.ndjson>. '
                         'The -reg- will be replaced with the registry name.')
     parser.add_argument('--summary-file',
                         type=str,
                         default='./data/-reg-/summary.json',
+                        dest='summary',
                         help='The name of the summary file for the registry. '
                         'Defaults to <./data/-reg-/summary.json>. '
                         'The -reg- will be replaced with the registry name.')
-    parser.add_argument('--maven'
+    parser.add_argument('--maven',
                         '-m',
                         action='store_true',
                         help='Flag to analyze Maven.')

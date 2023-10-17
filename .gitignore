@@ -5,6 +5,7 @@
 *.sub
 *.out
 *.sh
+*.pyc
 __pycache__/
 data/
 logs/
