@@ -21,15 +21,27 @@ class PGP_Sig_Status(Enum):
     This is an enum to represent the status of a PGP signature.
     '''
     GOOD = 1
-    BAD = 2
-    GOOD_EXPIRED = 3
-    EXPIRED = 4
-    NO_PUB = 5
-    INVALID_PUB = 6
-    UNVERIFIABLE = 7
+    NO_SIG = 2
+    BAD_SIG = 3
+    EXP_SIG = 4
+    EXP_PUB = 5
+    NO_PUB = 6
+    REV_PUB = 7
+    BAD_PUB = 8
+    OTHER = 9
 
 
-pnt = True
+pgp_start = {
+    PGP_Sig_Status.GOOD.name: 0,
+    PGP_Sig_Status.NO_SIG.name: 0,
+    PGP_Sig_Status.BAD_SIG.name: 0,
+    PGP_Sig_Status.EXP_SIG.name: 0,
+    PGP_Sig_Status.EXP_PUB.name: 0,
+    PGP_Sig_Status.NO_PUB.name: 0,
+    PGP_Sig_Status.REV_PUB.name: 0,
+    PGP_Sig_Status.BAD_PUB.name: 0,
+    PGP_Sig_Status.OTHER.name: 0,
+}
 
 
 def check_pgp(stderr):
@@ -41,19 +53,37 @@ def check_pgp(stderr):
     returns: info about signature validity
     '''
 
-    if 'Good signature' in stderr:
-        if 'expired' in stderr:
-            return PGP_Sig_Status.GOOD_EXPIRED
-        return PGP_Sig_Status.GOOD
-    elif 'BAD signature' in stderr:
-        return PGP_Sig_Status.BAD
-    elif 'expired' in stderr:
-        return PGP_Sig_Status.EXPIRED
-    elif 'No public key' in stderr:
+    stderr = stderr.lower()
+    if 'revoked' in stderr:
+        return PGP_Sig_Status.REV_PUB
+    if 'invalid public key algorithm' in stderr:
+        return PGP_Sig_Status.BAD_PUB
+    if 'key expired' in stderr \
+            or 'keyexpired' in stderr:
+        return PGP_Sig_Status.EXP_PUB
+    if 'no public key' in stderr \
+            or 'no_pubkey' in stderr:
         return PGP_Sig_Status.NO_PUB
-    elif 'Invalid public key' in stderr:
-        return PGP_Sig_Status.INVALID_PUB
-    return PGP_Sig_Status.UNVERIFIABLE
+    if 'bad signature' in stderr \
+            or 'errsig' in stderr \
+            or 'ambiguous' in stderr:
+        return PGP_Sig_Status.BAD_SIG
+    if 'not a detached signature' in stderr:
+        return PGP_Sig_Status.BAD_SIG
+    if 'expired signature' in stderr:
+        return PGP_Sig_Status.EXP_SIG
+    if 'wrong key usage' in stderr:
+        return PGP_Sig_Status.BAD_PUB
+    if 'no signature' in stderr \
+            or 'no such file or directory' in stderr \
+            or '' == stderr:
+        return PGP_Sig_Status.NO_SIG
+    if 'good signature' in stderr \
+            or 'goodsig' in stderr:
+        return PGP_Sig_Status.GOOD
+    print(stderr)
+    return PGP_Sig_Status.OTHER
+
 
 def pypi(args):
     '''This function is used to analyze the adoption of PyPI.
@@ -74,13 +104,7 @@ def pypi(args):
         'total_files': 0,
         'total_signatures': 0,
         'total_unsigned': 0,
-        PGP_Sig_Status.GOOD.name: 0,
-        PGP_Sig_Status.BAD.name: 0,
-        PGP_Sig_Status.GOOD_EXPIRED.name: 0,
-        PGP_Sig_Status.EXPIRED.name: 0,
-        PGP_Sig_Status.NO_PUB.name: 0,
-        PGP_Sig_Status.INVALID_PUB.name: 0,
-        PGP_Sig_Status.UNVERIFIABLE.name: 0,
+        'pgp': pgp_start,
     }
 
     # open the input file
@@ -102,7 +126,7 @@ def pypi(args):
                     if file['has_signature'] and file['signature'] is not None:
                         summary['total_signatures'] += 1
 
-                        summary[check_pgp(
+                        summary['pgp'][check_pgp(
                             file['signature']['stderr']).name] += 1
                     else:
                         summary['total_unsigned'] += 1
@@ -130,6 +154,7 @@ def maven(args):
         'total_files': 0,
         'total_signatures': 0,
         'total_unsigned': 0,
+        'pgp': pgp_start,
     }
 
     # open the input file
@@ -154,6 +179,8 @@ def maven(args):
                                 and file['stderr'] != '':
 
                             summary['total_signatures'] += 1
+                            summary['pgp'][check_pgp(file['stderr']).name] += 1
+
                         else:
                             summary['total_unsigned'] += 1
 
@@ -183,6 +210,9 @@ def npm(args):
         'pgp_total_signatures': 0,
         'ecdsa_total_signatures': 0,
         'total_unsigned': 0,
+        'ecdsa_good': 0,
+        'ecdsa_bad': 0,
+        'pgp': pgp_start,
     }
 
     # open the input file
@@ -210,9 +240,20 @@ def npm(args):
                     summary['total_unsigned'] += 1
                     continue
                 if signatures['ecdsa'] is not None:
-                    summary['ecdsa']['total_signatures'] += 1
+                    summary['ecdsa_total_signatures'] += 1
+                    if signatures['ecdsa']:
+                        summary['ecdsa_good'] += 1
+                    else:
+                        summary['ecdsa_bad'] += 1
                 if signatures['pgp'] is not None:
-                    summary['pgp']['total_signatures'] += 1
+                    summary['pgp_total_signatures'] += 1
+                    summary['pgp'][check_pgp(
+                        signatures['pgp']['stderr']).name] += 1
+    summary['ecdsa_unsigned'] = summary['total_versions'] - \
+        summary['ecdsa_total_signatures']
+    summary['pgp_unsigned'] = summary['total_versions'] - \
+        summary['pgp_total_signatures']
+
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
@@ -236,11 +277,7 @@ def huggingface(args):
         'total_commits': 0,
         'total_signatures': 0,
         'total_unsigned': 0,
-        'errsig': 0,
-        'bad': 0,
-        'good': 0,
-        'ambig': 0,
-        'expire': 0,
+        'pgp': pgp_start,
     }
 
     # open the input file
@@ -260,19 +297,20 @@ def huggingface(args):
                     summary['total_unsigned'] += 1
                 else:
                     summary['total_signatures'] += 1
-                    if 'ERRSIG' in commit['error']:
-                        summary['errsig'] += 1
-                    elif 'bad signature' in commit['error']:
-                        summary['bad'] += 1
-                    elif 'GOODSIG' in commit['error']:
-                        summary['good'] += 1
-                    elif 'ambiguous' in commit['error']:
-                        summary['ambig'] += 1
-                    elif 'KEYEXPIRED' in commit['error']:
-                        summary['expire'] += 1
-                    else:
+                    summary['pgp'][check_pgp(commit['error']).name] += 1
+                    #  if 'ERRSIG' in commit['error']:
+                    #      summary['errsig'] += 1
+                    #  elif 'bad signature' in commit['error']:
+                    #      summary['bad'] += 1
+                    #  elif 'GOODSIG' in commit['error']:
+                    #      summary['good'] += 1
+                    #  elif 'ambiguous' in commit['error']:
+                    #      summary['ambig'] += 1
+                    #  elif 'KEYEXPIRED' in commit['error']:
+                    #      summary['expire'] += 1
+                    #  else:
 
-                        print(commit['error'])
+                    #      print(commit['error'])
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
@@ -309,11 +347,13 @@ def docker(args):
             summary['total_packages'] += 1
             summary['total_versions'] += package['versions_count']
 
-            if len(package['signatures']) == 0:
-                summary['total_unsigned'] += package['versions_count']
-            else:
+            if len(package['signatures']) != 0:
                 summary['total_signatures'] += len(
                     package['signatures'][0]['SignedTags'])
+                summary['total_unsigned'] += package['versions_count'] - len(
+                    package['signatures'][0]['SignedTags'])
+            else:
+                summary['total_unsigned'] += package['versions_count']
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
