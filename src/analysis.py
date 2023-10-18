@@ -23,12 +23,10 @@ class PGP_Sig_Status(Enum):
     GOOD = 1
     BAD = 2
     GOOD_EXPIRED = 3
-    GOOD_NO_PUB = 4
-    BAD_EXPIRED = 5
-    BAD_NO_PUB = 6
+    EXPIRED = 4
+    NO_PUB = 5
+    INVALID_PUB = 6
     UNVERIFIABLE = 7
-    UNVERIFIABLE_EXPIRED = 8
-    UNVERIFIABLE_NO_PUB = 9
 
 
 pnt = True
@@ -44,24 +42,18 @@ def check_pgp(stderr):
     '''
 
     if 'Good signature' in stderr:
-        if 'No public key' in stderr:
-            return PGP_Sig_Status.GOOD_NO_PUB
-        elif 'expired' in stderr:
+        if 'expired' in stderr:
             return PGP_Sig_Status.GOOD_EXPIRED
         return PGP_Sig_Status.GOOD
     elif 'BAD signature' in stderr:
-        if 'No public key' in stderr:
-            return PGP_Sig_Status.BAD_NO_PUB
-        elif 'expired' in stderr:
-            return PGP_Sig_Status.BAD_EXPIRED
         return PGP_Sig_Status.BAD
-    else:
-        if 'No public key' in stderr:
-            return PGP_Sig_Status.UNVERIFIABLE_NO_PUB
-        elif 'expired' in stderr:
-            return PGP_Sig_Status.UNVERIFIABLE_EXPIRED
-        return PGP_Sig_Status.UNVERIFIABLE
-
+    elif 'expired' in stderr:
+        return PGP_Sig_Status.EXPIRED
+    elif 'No public key' in stderr:
+        return PGP_Sig_Status.NO_PUB
+    elif 'Invalid public key' in stderr:
+        return PGP_Sig_Status.INVALID_PUB
+    return PGP_Sig_Status.UNVERIFIABLE
 
 def pypi(args):
     '''This function is used to analyze the adoption of PyPI.
@@ -85,12 +77,10 @@ def pypi(args):
         PGP_Sig_Status.GOOD.name: 0,
         PGP_Sig_Status.BAD.name: 0,
         PGP_Sig_Status.GOOD_EXPIRED.name: 0,
-        PGP_Sig_Status.GOOD_NO_PUB.name: 0,
-        PGP_Sig_Status.BAD_EXPIRED.name: 0,
-        PGP_Sig_Status.BAD_NO_PUB.name: 0,
+        PGP_Sig_Status.EXPIRED.name: 0,
+        PGP_Sig_Status.NO_PUB.name: 0,
+        PGP_Sig_Status.INVALID_PUB.name: 0,
         PGP_Sig_Status.UNVERIFIABLE.name: 0,
-        PGP_Sig_Status.UNVERIFIABLE_EXPIRED.name: 0,
-        PGP_Sig_Status.UNVERIFIABLE_NO_PUB.name: 0,
     }
 
     # open the input file
