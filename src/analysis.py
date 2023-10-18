@@ -145,17 +145,17 @@ def maven(args):
 
             for version in package['versions']:
                 summary['total_versions'] += 1
+                if 'files' in version:
+                    for file in version['files']:
+                        summary['total_files'] += 1
 
-                for file in version['files']:
-                    summary['total_files'] += 1
+                        if file['has_signature'] \
+                                and file['stderr'] is not None \
+                                and file['stderr'] != '':
 
-                    if file['has_signature'] \
-                            and file['stderr'] is not None \
-                            and file['stderr'] != '':
-
-                        summary['total_signatures'] += 1
-                    else:
-                        summary['total_unsigned'] += 1
+                            summary['total_signatures'] += 1
+                        else:
+                            summary['total_unsigned'] += 1
 
             if missing:
                 print(package['name'])
