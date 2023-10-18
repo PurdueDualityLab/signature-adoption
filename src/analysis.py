@@ -44,6 +44,15 @@ pgp_start = {
 }
 
 
+def human_format(num):
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
+
+
 def check_pgp(stderr):
     '''
     This function is used to check if a PGP signature is valid.
@@ -74,15 +83,33 @@ def check_pgp(stderr):
         return PGP_Sig_Status.EXP_SIG
     if 'wrong key usage' in stderr:
         return PGP_Sig_Status.BAD_PUB
+    if 'good signature' in stderr \
+            or 'goodsig' in stderr:
+        return PGP_Sig_Status.GOOD
     if 'no signature' in stderr \
             or 'no such file or directory' in stderr \
             or '' == stderr:
         return PGP_Sig_Status.NO_SIG
-    if 'good signature' in stderr \
-            or 'goodsig' in stderr:
-        return PGP_Sig_Status.GOOD
     print(stderr)
     return PGP_Sig_Status.OTHER
+
+
+def pc_str(num, denom):
+    '''
+    This function is used to calculate the percentage of num/denom.
+
+    num: The numerator of the fraction.
+    denom: The denominator of the fraction.
+
+    returns: The percentage of num/denom as a string.
+    '''
+    if denom == 0:
+        return '0.00%'
+    return '{:.1f}%'.format(100 * num / denom)
+
+
+def pc_comb(num, denom):
+    return human_format(num) + ' (' + pc_str(num, denom) + ')'
 
 
 def pypi(args):
@@ -130,6 +157,15 @@ def pypi(args):
                             file['signature']['stderr']).name] += 1
                     else:
                         summary['total_unsigned'] += 1
+
+    total = summary['total_files']
+    signed = summary['total_signatures']
+    unsigned = summary['total_unsigned']
+    summary['total_signatures'] = pc_comb(signed, total)
+    summary['total_unsigned'] = pc_comb(unsigned, total)
+
+    for key, value in summary['pgp'].items():
+        summary['pgp'][key] = pc_comb(value, signed)
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
@@ -186,6 +222,14 @@ def maven(args):
 
             if missing:
                 print(package['name'])
+
+    total = summary['total_files']
+    signed = summary['total_signatures']
+    unsigned = summary['total_unsigned']
+    summary['total_signatures'] = pc_comb(signed, total)
+    summary['total_unsigned'] = pc_comb(unsigned, total)
+    for key, value in summary['pgp'].items():
+        summary['pgp'][key] = pc_comb(value, signed)
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
@@ -254,6 +298,21 @@ def npm(args):
     summary['pgp_unsigned'] = summary['total_versions'] - \
         summary['pgp_total_signatures']
 
+    total = summary['total_versions']
+    ecdsa = summary['ecdsa_total_signatures']
+    pgp = summary['pgp_total_signatures']
+    ecdsa_unsigned = summary['ecdsa_unsigned']
+    pgp_unsigned = summary['pgp_unsigned']
+    summary['ecdsa_total_signatures'] = pc_comb(ecdsa, total)
+    summary['pgp_total_signatures'] = pc_comb(pgp, total)
+    summary['ecdsa_unsigned'] = pc_comb(ecdsa_unsigned, total)
+    summary['pgp_unsigned'] = pc_comb(pgp_unsigned, total)
+
+    for key, value in summary['pgp'].items():
+        summary['pgp'][key] = pc_comb(value, pgp)
+
+    summary['ecdsa_good'] = pc_comb(summary['ecdsa_good'], ecdsa)
+    summary['ecdsa_bad'] = pc_comb(summary['ecdsa_bad'], ecdsa)
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
@@ -312,6 +371,16 @@ def huggingface(args):
 
                     #      print(commit['error'])
 
+    total = summary['total_commits']
+    signed = summary['total_signatures']
+    unsigned = summary['total_unsigned']
+
+    summary['total_signatures'] = pc_comb(signed, total)
+    summary['total_unsigned'] = pc_comb(unsigned, total)
+
+    for key, value in summary['pgp'].items():
+        summary['pgp'][key] = pc_comb(value, signed)
+
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
         json.dump(summary, f, indent=4)
@@ -354,6 +423,13 @@ def docker(args):
                     package['signatures'][0]['SignedTags'])
             else:
                 summary['total_unsigned'] += package['versions_count']
+
+    total = summary['total_versions']
+    signed = summary['total_signatures']
+    unsigned = summary['total_unsigned']
+
+    summary['total_signatures'] = pc_comb(signed, total)
+    summary['total_unsigned'] = pc_comb(unsigned, total)
 
     # write the summary to the summary file
     with open(summary_file, 'w') as f:
