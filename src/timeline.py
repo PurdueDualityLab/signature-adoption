@@ -335,8 +335,8 @@ def main():
     #print(pypi_time)
     #huggingface(args)
     #print(huggingface_time)
-    docker(args)
-    print(docker_time)
+    #docker(args)
+    #print(docker_time)
 
 
     maven_time = [{'total_units': 3220, 'total_signatures': 3014, 'total_unsigned': 206}, {'total_units': 2683, 'total_signatures': 2461, 'total_unsigned': 222}, {'total_units': 2561, 'total_signatures': 2480, 'total_unsigned': 81}, {'total_units': 2512, 'total_signatures': 2400, 'total_unsigned': 112}, {'total_units': 2828, 'total_signatures': 2710, 'total_unsigned': 118}, {'total_units': 3086, 'total_signatures': 2938, 'total_unsigned': 148}, {'total_units': 3009, 'total_signatures': 2875, 'total_unsigned': 134}, {'total_units': 2607, 'total_signatures': 2484, 'total_unsigned': 123}, {'total_units': 2926, 'total_signatures': 2704, 'total_unsigned': 222}, {'total_units': 2766, 'total_signatures': 2691, 'total_unsigned': 75}, {'total_units': 3233, 'total_signatures': 3022, 'total_unsigned': 211}, {'total_units': 3402, 'total_signatures': 3108, 'total_unsigned': 294}, {'total_units': 3238, 'total_signatures': 3021, 'total_unsigned': 217}]
@@ -346,27 +346,34 @@ def main():
 
     pypi_time = [{'total_units': 34104, 'total_signatures': 1739, 'total_unsigned': 32365}, {'total_units': 34944, 'total_signatures': 2034, 'total_unsigned': 32910}, {'total_units': 36095, 'total_signatures': 1757, 'total_unsigned': 34338}, {'total_units': 32004, 'total_signatures': 1350, 'total_unsigned': 30654}, {'total_units': 36995, 'total_signatures': 1599, 'total_unsigned': 35396}, {'total_units': 36642, 'total_signatures': 1714, 'total_unsigned': 34928}, {'total_units': 43165, 'total_signatures': 2218, 'total_unsigned': 40947}, {'total_units': 45716, 'total_signatures': 2153, 'total_unsigned': 43563}, {'total_units': 42506, 'total_signatures': 1951, 'total_unsigned': 40555}, {'total_units': 46438, 'total_signatures': 1530, 'total_unsigned': 44908}, {'total_units': 46868, 'total_signatures': 1421, 'total_unsigned': 45447}, {'total_units': 49364, 'total_signatures': 1343, 'total_unsigned': 48021}, {'total_units': 46310, 'total_signatures': 1136, 'total_unsigned': 45174}]
 
+    docker_time = [{'total_units': 11791, 'total_signatures': 182, 'total_unsigned': 11609}, {'total_units': 13284, 'total_signatures': 115, 'total_unsigned': 13169}, {'total_units': 22866, 'total_signatures': 235, 'total_unsigned': 22631}, {'total_units': 21841, 'total_signatures': 304, 'total_unsigned': 21537}, {'total_units': 21571, 'total_signatures': 282, 'total_unsigned': 21289}, {'total_units': 18751, 'total_signatures': 260, 'total_unsigned': 18491}, {'total_units': 30993, 'total_signatures': 254, 'total_unsigned': 30739}, {'total_units': 27312, 'total_signatures': 174, 'total_unsigned': 27138}, {'total_units': 35983, 'total_signatures': 311, 'total_unsigned': 35672}, {'total_units': 53918, 'total_signatures': 285, 'total_unsigned': 53633}, {'total_units': 54548, 'total_signatures': 437, 'total_unsigned': 54111}, {'total_units': 64157, 'total_signatures': 146, 'total_unsigned': 64011}, {'total_units': 98225, 'total_signatures': 376, 'total_unsigned': 97849}]
+
 
 
     mv = [bucket['total_signatures']/bucket['total_units'] for bucket in maven_time]
-    np = [bucket['total_signatures']/bucket['total_units'] for bucket in npm_time]
+    npm = [bucket['total_signatures']/bucket['total_units'] for bucket in npm_time]
     pp = [bucket['total_signatures']/bucket['total_units'] for bucket in pypi_time]
     dc = [bucket['total_signatures']/bucket['total_units'] for bucket in docker_time]
 
     mv = np.array(mv)
-    np = np.array(np)
+    npm = np.array(npm)
     pp = np.array(pp)
     dc = np.array(dc)
 
+
     mv = mv / mv[6]
-    np = np / np[6]
+    npm = npm / npm[6]
     pp = pp / pp[6]
     dc = dc / dc[6]
+    
 
-    plt.plot(mv, label='Maven')
-    plt.plot(np, label='npm')
+
+
+
+    #plt.plot(mv, label='Maven')
+    #plt.plot(npm, label='npm')
     plt.plot(pp, label='PyPI')
-    plt.plot(dc, label='Docker')
+    #plt.plot(dc, label='Docker')
 
     plt.axvline(x=6, color='k', linestyle='--', label='Change in PyPI')
 
@@ -375,6 +382,7 @@ def main():
     plt.title('Adoption of Software Signing')
 
     plt.legend()
+
     plt.show()
 
 

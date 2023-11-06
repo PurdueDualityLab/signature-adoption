@@ -16,16 +16,14 @@ __author__ = "Taylor R. Schorlemmer"
 __email__ = "tschorle@purdue.edu"
 
 
-def packages(hf_dump_path='packages.ndjson',
-             hf_token_path='hf_token.txt',
-             simplified_csv_path='simplified.csv'):
-    ''' This function gets the repositories and associated metadata from
-    HuggingFace. A full data dump is saved in an ndjson file, and a simplified
-    csv is also created.
+def packages(output_path='packages.ndjson',
+             token_path='hf_token.txt'):
+    '''
+    This function gets the repositories and associated metadata from
+    HuggingFace. A full data dump is saved in an ndjson file.
 
-    hf_dump_path: The path to save the full data dump to.
-    hf_token_path: The path to the file containing the HuggingFace API token.
-    simplified_csv_path: The path to save the simplified csv to.
+    output_path: The path to save the full data dump to.
+    token_path: The path to the file containing the HuggingFace API token.
 
     returns: None
     '''
@@ -34,7 +32,7 @@ def packages(hf_dump_path='packages.ndjson',
 
     # Read in token for huggingface api
     log.info('Reading in token for HuggingFace API.')
-    with open(hf_token_path, 'r') as f:
+    with open(token_path, 'r') as f:
         hf_token = f.read().strip()
 
     # Get list of all models on HuggingFace
@@ -52,29 +50,15 @@ def packages(hf_dump_path='packages.ndjson',
         modelDict: dict = model.__dict__
         modelDict["siblings"] = [
             file.__dict__ for file in modelDict["siblings"]]
+        modelDict["url"] = f"https://huggingface.co/{modelDict['id']}"
         repo_list.append(modelDict)
 
     # free up memory
     del model_list
 
-    # Save list of dictionaries to json file
-    log.info(f'Saving of repositories to {hf_dump_path}')
-    with open(hf_dump_path, 'a') as f:
+    # Save list of dictionaries to ndjson file
+    log.info(f'Saving of repositories to {output_path}')
+    with open(output_path, 'a') as f:
         for repo in repo_list:
             json.dump(repo, f, default=str)
             f.write('\n')
-
-    # Create a simplified csv of data
-    log.info(f'Creating simplified csv of data at {simplified_csv_path}')
-    with open(simplified_csv_path, 'w', newline='') as f:
-
-        # Create csv writer
-        writer = csv.writer(f)
-
-        for repo in repo_list:
-            writer.writerow([
-                repo['id'],
-                f"https://huggingface.co/{repo['id']}",
-                repo['downloads'],
-                repo['lastModified']
-            ])

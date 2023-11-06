@@ -5,14 +5,14 @@ for all registries supported by this project.
 '''
 
 # Import statements
-import psycopg2
-import json
-import os
 import argparse
 import logging as log
 from datetime import datetime
 from util.files import valid_path_create, gen_path
-from huggingface.packages import packages
+from huggingface.packages import packages as huggingface_packages
+from docker.packages import packages as docker_packages
+from maven.packages import packages as maven_packages
+from pypi.packages import packages as pypi_packages
 
 # authorship information
 __author__ = "Taylor R. Schorlemmer"
@@ -20,16 +20,6 @@ __email__ = "tschorle@purdue.edu"
 
 # Define global variables
 script_start_time = datetime.now()
-
-localhost_password = os.environ.get("PSQL_Password") or ''
-
-db_credentials = {
-    "dbname": "packages_production",  # Ecosystems database name
-    "user": "postgres",  # Default PostgreSQL user
-    "password": localhost_password,  # Password for user
-    "host": "localhost",  # Database host
-    "port": "5432"  # Default PostgreSQL port
-}
 
 
 # Function to parse arguments
@@ -112,91 +102,6 @@ def log_finish():
              f'{datetime.now()-script_start_time}')
 
 
-# Function to get packages from ecosystems database
-def get_ecosystems_packages(args):
-
-    log.info('Getting packages from ecosystems.')
-
-    # Connect to database
-    conn = psycopg2.connect(**db_credentials)
-    cur_pkgs = conn.cursor()
-    cur_vrsns = conn.cursor()
-
-    # Query to get packages
-    query_pkgs = '''
-        SELECT * FROM packages
-        WHERE ecosystem = %s;
-    '''
-
-    # Query to get versions
-    query_vrsns = '''
-        SELECT * FROM versions
-        WHERE package_id = %s;
-    '''
-
-    # List of ecosystems
-    ecosystems = []
-    if args.pypi:
-        ecosystems.append('pypi')
-    if args.docker:
-        ecosystems.append('docker')
-    if args.npm:
-        ecosystems.append('npm')
-    if args.maven:
-        ecosystems.append('maven')
-
-    # Get packages for each ecosystem
-    for ecosystem in ecosystems:
-
-        log.info(f'Getting packages for {ecosystem} ecosystem.')
-
-        # Open new file for each ecosystem
-        eco_file = gen_path(
-            directory=args.output_folder,
-            file=args.output_file,
-            ecosystem=ecosystem)
-        log.info(f'Opening file {eco_file} for writing.')
-        with open(eco_file, 'a') as f:
-
-            # Execute query and get first package
-            cur_pkgs.execute(query_pkgs, (ecosystem,))
-            package = cur_pkgs.fetchone()
-
-            # Get column names
-            p_col = [desc[0] for desc in cur_pkgs.description]
-            v_col = None
-
-            # Iterate through each package
-            while package:
-
-                # Jsonify package
-                json_package = dict(zip(p_col, package))
-
-                # Get versions for each package
-                cur_vrsns.execute(query_vrsns, (json_package['id'],))
-                versions = cur_vrsns.fetchall()
-
-                # Get column names
-                if v_col is None:
-                    v_col = [desc[0] for desc in cur_vrsns.description]
-
-                # Jsonify versions
-                versions = [dict(zip(v_col, version)) for version in versions]
-
-                # Add versions to package
-                json_package['versions'] = versions
-
-                # Write package to file
-                json.dump(json_package, f, default=str)
-                f.write('\n')
-
-                # Get next package
-                package = cur_pkgs.fetchone()
-
-    # Close database connection
-    conn.close()
-
-
 def get_huggingface_packages(args):
     '''
     This function gets the packages from Hugging Face.
@@ -204,11 +109,7 @@ def get_huggingface_packages(args):
     args: the arguments passed to the script
     '''
 
-    # Check if flag is set
-    if not args.huggingface:
-        return
-
-    packages(
+    huggingface_packages(
         hf_dump_path=gen_path(
             output_folder=args.output_folder,
             output_file=args.output_file,
@@ -219,6 +120,48 @@ def get_huggingface_packages(args):
             eco='huggingface'))
 
 
+def get_docker_packages(args):
+    '''
+    This function gets the packages from Docker Hub.
+
+    args: the arguments passed to the script
+    '''
+
+    docker_packages(
+        output_path=gen_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco='docker'))
+
+
+def get_maven_packages(args):
+    '''
+    This function gets the packages from Maven.
+
+    args: the arguments passed to the script
+    '''
+
+    maven_packages(
+        output_path=gen_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco='maven'))
+
+
+def get_pypi_packages(args):
+    '''
+    This function gets the packages from PyPI.
+
+    args: the arguments passed to the script
+    '''
+
+    pypi_packages(
+        output_path=gen_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco='pypi'))
+
+
 # Classic Python main function
 def main():
     # Parse arguments
@@ -227,11 +170,15 @@ def main():
     # Setup logger
     setup_logger(args)
 
-    # Get packages from ecosystems database
-    get_ecosystems_packages(args)
-
-    # Get packages from Hugging Face
-    get_huggingface_packages(args)
+    # Get packages from each of the registries
+    if args.huggingface:
+        get_huggingface_packages(args)
+    if args.docker:
+        get_docker_packages(args)
+    if args.maven:
+        get_maven_packages(args)
+    if args.pypi:
+        get_pypi_packages(args)
 
     # Log finish
     log_finish()
