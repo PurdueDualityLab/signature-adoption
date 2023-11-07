@@ -87,6 +87,8 @@ python -m pip install -r requirements.txt
 Before checking for signature adoption in each registry, we need to get a list of all packages for each registry. 
 For PyPI, NPM, Docker Hub, and Maven Central, we can run the [packages.py](src/packages.py) script to generate a list of packages and versions from each registry.
 
+Hugging Face and PyPI have special arguments. Take a look at these by using `python src/packages.py huggingface -h` and `python src/packages.py huggingface -h` respectively.
+
 ## Filter Packages
 
 
