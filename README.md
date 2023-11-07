@@ -1,9 +1,7 @@
-<a name="toc"/>
 # Table of Contents
-1. [Table of Contents](#toc)
+1. [Table of Contents](#table-of-contents)
 2. [Overview](#overview)
 
-<a name="overview"/>
 # Overview
 Tools for verifying signatures on PyPI, NPM, Docker Hub, Maven Central, and Hugging Face.
 
