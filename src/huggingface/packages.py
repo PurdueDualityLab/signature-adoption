@@ -17,23 +17,28 @@ __email__ = "tschorle@purdue.edu"
 
 
 def packages(output_path='packages.ndjson',
-             token_path='hf_token.txt'):
+             token_path='hf_token.txt',
+             token=None,):
     '''
     This function gets the repositories and associated metadata from
     HuggingFace. A full data dump is saved in an ndjson file.
 
     output_path: The path to save the full data dump to.
     token_path: The path to the file containing the HuggingFace API token.
+    token: The HuggingFace API token. If this is provided, token_path is
+    ignored.
 
     returns: None
     '''
 
-    log.info('Starting Hugging Face data dump.')
+    log.info('Starting HuggingFace package collection.')
 
     # Read in token for huggingface api
-    log.info('Reading in token for HuggingFace API.')
-    with open(token_path, 'r') as f:
-        hf_token = f.read().strip()
+    hf_token = token
+    if hf_token is None:
+        log.info('Reading in token for HuggingFace API.')
+        with open(token_path, 'r') as f:
+            hf_token = f.read().strip()
 
     # Get list of all models on HuggingFace
     log.info('Getting list of all models on HuggingFace.')

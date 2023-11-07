@@ -29,16 +29,23 @@ def huggingface(args):
     args: the arguments passed to the script
     '''
 
-    huggingface_packages(
-        output_path=gen_path(
-            directory=args.output_folder,
-            file=args.output_file,
-            ecosystem='huggingface'
-            ),
-        token_file=valid_path(
-            path=args.token_file
+    output_path = gen_path(
+        directory=args.output_folder,
+        file=args.output_file,
+        ecosystem='huggingface')
+
+    if args.token is None:
+        huggingface_packages(
+            output_path=output_path,
+            token_path=valid_path(
+                path=args.token_path
             )
-    )
+        )
+    else:
+        huggingface_packages(
+            output_path=output_path,
+            token=args.token
+        )
 
 
 def docker(args):
@@ -134,14 +141,23 @@ def parse_args():
         'huggingface',
         help='Get packages from Hugging Face.')
     huggingface_parser.set_defaults(func=huggingface)
-    huggingface_parser.add_argument('--token-file',
-                                    dest='token_file',
-                                    metavar='FILE',
-                                    type=str,
-                                    default='./hftoken.txt',
-                                    help='The path to the file containing the '
-                                    'Hugging Face API token. '
-                                    'Defaults to ./hftoken.txt.')
+    hf_token_group = huggingface_parser.add_argument_group(
+        'HuggingFace Tokens')
+    hf_me_group = hf_token_group.add_mutually_exclusive_group()
+    hf_me_group.add_argument('--token',
+                             dest='token',
+                             metavar='TOKEN',
+                             type=str,
+                             default=None,
+                             help='The Hugging Face API token.')
+    hf_me_group.add_argument('--token-path',
+                             dest='token_path',
+                             metavar='FILE',
+                             type=str,
+                             default='./hftoken.txt',
+                             help='The path to the file containing the '
+                             'Hugging Face API token. '
+                             'Defaults to ./hftoken.txt.')
 
     # Docker subparser
     docker_parser = subparsers.add_parser(
@@ -182,7 +198,10 @@ def setup_logger(args):
                     datefmt='%Y-%m-%d %H:%M:%S')
 
     # Log start time
-    log.info('Starting get_tags script.')
+    log.info('Starting packages script.')
+
+    # Log arguments
+    log.info(f'Arguments: {args}')
 
 
 def log_finish():
