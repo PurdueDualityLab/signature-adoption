@@ -142,7 +142,10 @@ def parse_args():
         help='Get packages from Hugging Face.')
     huggingface_parser.set_defaults(func=huggingface)
     hf_token_group = huggingface_parser.add_argument_group(
-        'HuggingFace Tokens')
+        'HuggingFace Tokens',
+        'Pass the Hugging Face API token. This can be passed as an argument '
+        'or read from a file. Only one of these options can be used. The '
+        'default is to read from a file.')
     hf_me_group = hf_token_group.add_mutually_exclusive_group()
     hf_me_group.add_argument('--token',
                              dest='token',
