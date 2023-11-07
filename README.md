@@ -1,7 +1,13 @@
-# signature-adoption
+<a name="toc"/>
+# Table of Contents
+1. [Table of Contents](#toc)
+2. [Overview](#overview)
+
+<a name="overview"/>
+# Overview
 Tools for verifying signatures on PyPI, NPM, Docker Hub, Maven Central, and Hugging Face.
 
-## Directory Structure
+# Directory Structure
 ```bash
 .
 ├── data                    # Data for each registry
@@ -26,8 +32,8 @@ Tools for verifying signatures on PyPI, NPM, Docker Hub, Maven Central, and Hugg
     ├── filter.py           # Script filters list of packages
     └── adoption.py         # Script checks signatures in remaining packages
 ```
-## Requirements
-### PostgreSQL
+# Requirements
+## PostgreSQL
 The initial dataset generation script [packages.py](src/packages.py) interfaces with a PostgreSQL database with a data dump from [ecosyste.ms](https://packages.ecosyste.ms/open-data).
 Before running the [packages.py](src/packages.py) script, a valid PostgreSQL server should be running with the _packages_production_ database available.
 Please be aware that **this database is about 200G when rebuilt**.
@@ -38,7 +44,7 @@ That can be set in linux using the following command:
 export PSQL_Password=<my_psql_password>
 ```
 
-### BigQuery
+## BigQuery
 [packages.py](src/packages.py) also uses access to Google's BigQuery to fetch data for PyPI.
 For this to work, a valid service account key must be added to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 This can be accomplished in linux using the following command:
@@ -47,11 +53,11 @@ export GOOGLE_APPLICATION_CREDENTIALS=<creds_file>
 ```
 Check documentation at https://cloud.google.com/docs/authentication/provide-credentials-adc for more information.
 
-### HuggingFace
+## HuggingFace
 [packages.py](src/packages.py) requires an access token to interface with the HuggingFace API.
 Pass a file containing this token to the script in command line.
 
-### Python
+## Python
 The scripts for this project are written in Python.
 The [requirements.txt](requirements.txt) can be used to create a Python virtual environment with all necessary dependencies in _bash_ using: 
 ```bash
@@ -60,6 +66,13 @@ source env/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-## How to Run
+# Running
+
+## Get Packages From Each Registry
 Before checking for signature adoption in each registry, we need to get a list of all packages for each registry. 
 For PyPI, NPM, Docker Hub, and Maven Central, we can run the [packages.py](src/packages.py) script to generate a list of packages and versions from each registry.
+
+## Filter Packages From Each Registry
+
+
+## Check Adoption on Remaining Packages
