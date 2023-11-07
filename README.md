@@ -1,6 +1,16 @@
 # Table of Contents
 1. [Table of Contents](#table-of-contents)
 2. [Overview](#overview)
+3. [Directory Structure](#directory-structure)
+4. [Requirements](#requirements)
+    1. [PostgreSQL](#postgresql)
+    2. [Big Query Authentication](#big-query-authentication)
+    3. [HuggingFace Token](#huggingface-token)
+    4. [Python](#python)
+5. [Running](#running)
+    1.  [Get Packages](#get-packages)
+    2.  [Filter Packages](#filter-packages)
+    3.  [Check Adoption](#check-adoption)
 
 # Overview
 Tools for verifying signatures on PyPI, NPM, Docker Hub, Maven Central, and Hugging Face.
@@ -42,7 +52,7 @@ That can be set in linux using the following command:
 export PSQL_Password=<my_psql_password>
 ```
 
-## BigQuery
+## Big Query Authentication
 [packages.py](src/packages.py) also uses access to Google's BigQuery to fetch data for PyPI.
 For this to work, a valid service account key must be added to the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 This can be accomplished in linux using the following command:
@@ -51,7 +61,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=<creds_file>
 ```
 Check documentation at https://cloud.google.com/docs/authentication/provide-credentials-adc for more information.
 
-## HuggingFace
+## HuggingFace Token
 [packages.py](src/packages.py) requires an access token to interface with the HuggingFace API.
 Pass a file containing this token to the script in command line.
 
@@ -66,11 +76,11 @@ python -m pip install -r requirements.txt
 
 # Running
 
-## Get Packages From Each Registry
+## Get Packages
 Before checking for signature adoption in each registry, we need to get a list of all packages for each registry. 
 For PyPI, NPM, Docker Hub, and Maven Central, we can run the [packages.py](src/packages.py) script to generate a list of packages and versions from each registry.
 
-## Filter Packages From Each Registry
+## Filter Packages
 
 
-## Check Adoption on Remaining Packages
+## Check Adoption
