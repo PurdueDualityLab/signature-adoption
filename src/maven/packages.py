@@ -47,7 +47,7 @@ def packages(output_path):
     # Query to get packages
     query_pkgs = '''
         SELECT * FROM packages
-        WHERE ecosystem = maven;
+        WHERE registry_id = 22;
     '''
 
     # Query to get versions

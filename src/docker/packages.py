@@ -47,7 +47,7 @@ def packages(output_path):
     # Query to get packages
     query_pkgs = '''
         SELECT * FROM packages
-        WHERE ecosystem = docker;
+        WHERE registry_id = 28;
     '''
 
     # Query to get versions

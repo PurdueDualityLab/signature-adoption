@@ -6,6 +6,7 @@ for pypi repositories. It then saves the data to a ndjson file.
 
 # Import statements
 import json
+import os
 import logging as log
 from google.cloud import bigquery
 
@@ -15,16 +16,24 @@ __email__ = "tschorle@purdue.edu"
 
 
 # Function to get the repositories and associated metadata
-def packages(output_path):
+def packages(output_path, auth_path):
     '''
     This function gets a list of and packages and associated metadata from
     pypi using the ecosystems database.
 
     output_path: The path to the output file.
+    auth_path: The path to the authentication file.
+
+    returns: None
     '''
 
     # Log start of function
     log.info("Getting packages from Docker Hub.")
+
+    # If there is an authentication path, add it to the environment variable
+    if auth_path is not None:
+        log.info(f'Adding authentication path {auth_path} to environment.')
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = auth_path
 
     # Create the client for the bigquery database
     client = bigquery.Client()

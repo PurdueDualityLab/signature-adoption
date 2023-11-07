@@ -29,11 +29,14 @@ def huggingface(args):
     args: the arguments passed to the script
     '''
 
+    # Generate the output path
     output_path = gen_path(
         directory=args.output_folder,
         file=args.output_file,
         ecosystem='huggingface')
 
+    # Call the function, but check if the token is passed as an argument or
+    # read from a file
     if args.token is None:
         huggingface_packages(
             output_path=output_path,
@@ -55,11 +58,14 @@ def docker(args):
     args: the arguments passed to the script
     '''
 
-    docker_packages(
-        output_path=gen_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco='docker'))
+    # Generate the output path
+    output_path = gen_path(
+        directory=args.output_folder,
+        file=args.output_file,
+        ecosystem='docker')
+
+    # Call the function
+    docker_packages(output_path=output_path)
 
 
 def maven(args):
@@ -69,11 +75,14 @@ def maven(args):
     args: the arguments passed to the script
     '''
 
-    maven_packages(
-        output_path=gen_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco='maven'))
+    # Generate the output path
+    output_path = gen_path(
+        directory=args.output_folder,
+        file=args.output_file,
+        ecosystem='maven')
+
+    # Call the function
+    maven_packages(output_path=output_path)
 
 
 def pypi(args):
@@ -83,11 +92,20 @@ def pypi(args):
     args: the arguments passed to the script
     '''
 
-    pypi_packages(
-        output_path=gen_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco='pypi'))
+    # Generate the output path
+    output_path = gen_path(
+        directory=args.output_folder,
+        file=args.output_file,
+        ecosystem='pypi')
+
+    # Check the authentication path
+    auth_path = args.auth_path
+    if auth_path is not None:
+        auth_path = valid_path(path=auth_path)
+
+    # Call the function
+    pypi_packages(output_path=output_path,
+                  auth_path=auth_path)
 
 
 # Function to parse arguments
@@ -179,6 +197,17 @@ def parse_args():
         'pypi',
         help='Get packages from PyPI.')
     pypi_parser.set_defaults(func=pypi)
+    pypi_parser.add_argument('--auth-path',
+                             dest='auth_path',
+                             metavar='FILE',
+                             type=str,
+                             default=None,
+                             help='The path to the file containing the Google '
+                             'BigQuery authentication information. '
+                             'Defaults to None and assumes that the '
+                             'authentication information is in the '
+                             'GOOGLE_APPLICATION_CREDENTIALS environment '
+                             'variable.')
 
     args = parser.parse_args()
 
