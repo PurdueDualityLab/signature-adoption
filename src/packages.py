@@ -8,7 +8,7 @@ for all registries supported by this project.
 import argparse
 import logging as log
 from datetime import datetime
-from util.files import valid_path_create, gen_path
+from util.files import valid_path_create, gen_path, valid_path
 from huggingface.packages import packages as huggingface_packages
 from docker.packages import packages as docker_packages
 from maven.packages import packages as maven_packages
@@ -22,52 +22,145 @@ __email__ = "tschorle@purdue.edu"
 script_start_time = datetime.now()
 
 
+def huggingface(args):
+    '''
+    This function gets the packages from Hugging Face.
+
+    args: the arguments passed to the script
+    '''
+
+    huggingface_packages(
+        output_path=gen_path(
+            directory=args.output_folder,
+            file=args.output_file,
+            ecosystem='huggingface'
+            ),
+        token_file=valid_path(
+            path=args.token_file
+            )
+    )
+
+
+def docker(args):
+    '''
+    This function gets the packages from Docker Hub.
+
+    args: the arguments passed to the script
+    '''
+
+    docker_packages(
+        output_path=gen_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco='docker'))
+
+
+def maven(args):
+    '''
+    This function gets the packages from Maven.
+
+    args: the arguments passed to the script
+    '''
+
+    maven_packages(
+        output_path=gen_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco='maven'))
+
+
+def pypi(args):
+    '''
+    This function gets the packages from PyPI.
+
+    args: the arguments passed to the script
+    '''
+
+    pypi_packages(
+        output_path=gen_path(
+            output_folder=args.output_folder,
+            output_file=args.output_file,
+            eco='pypi'))
+
+
 # Function to parse arguments
 def parse_args():
     ''' This function parses arguments passed to the script.
 
     returns: args - the arguments passed to the script
     '''
+
+    # Top level parser
     parser = argparse.ArgumentParser(
-        description='Get packages from ecosystems database.'
-        'The packages will be written to a Newline Delimited JSON file.')
-    parser.add_argument('--output-folder',
+        description='Get a list of packages and metadata from a specified '
+        'registry. The output is a newline delimited JSON file with each '
+        'line being a JSON object containing the metadata for a package.')
+
+    # global arguments
+    parser.add_argument('--out-dir',
+                        dest='output_folder',
+                        metavar='DIR',
                         type=str,
                         default='./data/-eco-',
-                        help='The path basis to the output files.'
-                        'Defaults to ./data/-eco-'
+                        help='The directory for the output files. '
+                        'Defaults to ./data/-eco-. '
                         'The -eco- will be replaced with the ecosystem name.')
-    parser.add_argument('--output-filename',
+    parser.add_argument('--out-name',
+                        dest='output_file',
+                        metavar='NAME',
                         type=str,
                         default='packages.ndjson',
-                        help='The name of the output file for each ecosystem.'
-                        'Defaults to packages.ndjson.'
+                        help='The name of the output file for each ecosystem. '
+                        'Defaults to packages.ndjson. '
                         'This will be saved in the output-folder.')
-    parser.add_argument('--log',
+    parser.add_argument('--log-path',
+                        dest='log',
+                        metavar='FILE',
                         type=str,
                         default='./logs/packages.log',
-                        help='The path to the log file.'
+                        help='The path to the log file. '
                         'Defaults to ./logs/packages.log.')
-    parser.add_argument('--pypi',
-                        '-p',
-                        action='store_true',
-                        help='Flag to get packages from PyPI.')
-    parser.add_argument('--docker',
-                        '-d',
-                        action='store_true',
-                        help='Flag to get packages from Docker Hub.')
-    parser.add_argument('--npm',
-                        '-n',
-                        action='store_true',
-                        help='Flag to get packages from npm.')
-    parser.add_argument('--maven',
-                        '-m',
-                        action='store_true',
-                        help='Flag to get packages from Maven.')
-    parser.add_argument('--huggingface',
-                        '-f',
-                        action='store_true',
-                        help='Flag to get packages from Hugging Face.')
+
+    # Create subparsers
+    subparsers = parser.add_subparsers(
+        title='registry',
+        description='The registry to get packages from.',
+        help='The registry to get a list of packages from.',
+        dest='registry',
+        required=True)
+
+    # Hugging Face subparser
+    huggingface_parser = subparsers.add_parser(
+        'huggingface',
+        help='Get packages from Hugging Face.')
+    huggingface_parser.set_defaults(func=huggingface)
+    huggingface_parser.add_argument('--token-file',
+                                    dest='token_file',
+                                    metavar='FILE',
+                                    type=str,
+                                    default='./hftoken.txt',
+                                    help='The path to the file containing the '
+                                    'Hugging Face API token. '
+                                    'Defaults to ./hftoken.txt.')
+
+    # Docker subparser
+    docker_parser = subparsers.add_parser(
+        'docker',
+        help='Get packages from Docker Hub.')
+    docker_parser.set_defaults(func=docker)
+
+    # Maven subparser
+    maven_parser = subparsers.add_parser(
+        'maven',
+        help='Get packages from Maven.')
+    maven_parser.set_defaults(func=maven)
+
+    # PyPI subparser
+    pypi_parser = subparsers.add_parser(
+        'pypi',
+        help='Get packages from PyPI.')
+    pypi_parser.set_defaults(func=pypi)
+
     args = parser.parse_args()
 
     # Normalize paths
@@ -102,66 +195,6 @@ def log_finish():
              f'{datetime.now()-script_start_time}')
 
 
-def get_huggingface_packages(args):
-    '''
-    This function gets the packages from Hugging Face.
-
-    args: the arguments passed to the script
-    '''
-
-    huggingface_packages(
-        hf_dump_path=gen_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco='huggingface'),
-        simplified_csv_path=gen_path(
-            output_folder=args.output_folder,
-            output_file='simplified.csv',
-            eco='huggingface'))
-
-
-def get_docker_packages(args):
-    '''
-    This function gets the packages from Docker Hub.
-
-    args: the arguments passed to the script
-    '''
-
-    docker_packages(
-        output_path=gen_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco='docker'))
-
-
-def get_maven_packages(args):
-    '''
-    This function gets the packages from Maven.
-
-    args: the arguments passed to the script
-    '''
-
-    maven_packages(
-        output_path=gen_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco='maven'))
-
-
-def get_pypi_packages(args):
-    '''
-    This function gets the packages from PyPI.
-
-    args: the arguments passed to the script
-    '''
-
-    pypi_packages(
-        output_path=gen_path(
-            output_folder=args.output_folder,
-            output_file=args.output_file,
-            eco='pypi'))
-
-
 # Classic Python main function
 def main():
     # Parse arguments
@@ -170,15 +203,8 @@ def main():
     # Setup logger
     setup_logger(args)
 
-    # Get packages from each of the registries
-    if args.huggingface:
-        get_huggingface_packages(args)
-    if args.docker:
-        get_docker_packages(args)
-    if args.maven:
-        get_maven_packages(args)
-    if args.pypi:
-        get_pypi_packages(args)
+    # Call function
+    args.func(args)
 
     # Log finish
     log_finish()
