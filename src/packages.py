@@ -29,24 +29,18 @@ def huggingface(args):
     args: the arguments passed to the script
     '''
 
-    # Generate the output path
-    output_path = gen_path(
-        directory=args.output_folder,
-        file=args.output_file,
-        ecosystem='huggingface')
-
     # Call the function, but check if the token is passed as an argument or
     # read from a file
     if args.token is None:
         huggingface_packages(
-            output_path=output_path,
+            output_path=args.output_path,
             token_path=valid_path(
                 path=args.token_path
             )
         )
     else:
         huggingface_packages(
-            output_path=output_path,
+            output_path=args.output_path,
             token=args.token
         )
 
@@ -58,14 +52,8 @@ def docker(args):
     args: the arguments passed to the script
     '''
 
-    # Generate the output path
-    output_path = gen_path(
-        directory=args.output_folder,
-        file=args.output_file,
-        ecosystem='docker')
-
     # Call the function
-    docker_packages(output_path=output_path)
+    docker_packages(output_path=args.output_path)
 
 
 def maven(args):
@@ -75,14 +63,8 @@ def maven(args):
     args: the arguments passed to the script
     '''
 
-    # Generate the output path
-    output_path = gen_path(
-        directory=args.output_folder,
-        file=args.output_file,
-        ecosystem='maven')
-
     # Call the function
-    maven_packages(output_path=output_path)
+    maven_packages(output_path=args.output_path)
 
 
 def pypi(args):
@@ -92,19 +74,13 @@ def pypi(args):
     args: the arguments passed to the script
     '''
 
-    # Generate the output path
-    output_path = gen_path(
-        directory=args.output_folder,
-        file=args.output_file,
-        ecosystem='pypi')
-
     # Check the authentication path
     auth_path = args.auth_path
     if auth_path is not None:
         auth_path = valid_path(path=auth_path)
 
     # Call the function
-    pypi_packages(output_path=output_path,
+    pypi_packages(output_path=args.output_path,
                   auth_path=auth_path)
 
 
@@ -122,22 +98,14 @@ def parse_args():
         'line being a JSON object containing the metadata for a package.')
 
     # global arguments
-    parser.add_argument('--out-dir',
-                        dest='output_folder',
-                        metavar='DIR',
+    parser.add_argument('--out-path',
+                        dest='output_path',
+                        metavar='PATH',
                         type=str,
-                        default='./data/-eco-',
-                        help='The directory for the output files. '
-                        'Defaults to ./data/-eco-. '
+                        default='./data/-eco-/packages.ndjson',
+                        help='The path to the output file. '
+                        'Defaults to ./data/-eco-/packages.ndjson. '
                         'The -eco- will be replaced with the ecosystem name.')
-    parser.add_argument('--out-name',
-                        dest='output_file',
-                        metavar='NAME',
-                        type=str,
-                        default='packages.ndjson',
-                        help='The name of the output file for each ecosystem. '
-                        'Defaults to packages.ndjson. '
-                        'This will be saved in the output-folder.')
     parser.add_argument('--log-path',
                         dest='log',
                         metavar='FILE',
@@ -213,6 +181,10 @@ def parse_args():
 
     # Normalize paths
     args.log = valid_path_create(args.log)
+    args.output_path = gen_path(
+        directory='',
+        file=args.output_path,
+        ecosystem=args.registry)
 
     return args
 
