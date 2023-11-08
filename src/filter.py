@@ -67,8 +67,8 @@ def maven(args):
         input_path=args.input_path,
         output_path=args.output_path,
         random_select=args.random_select,
-        min_downloads=args.min_downloads,
-        min_versions=args.min_versions
+        min_versions=args.min_versions,
+        min_dependants=args.min_dependants
     )
 
 
@@ -167,18 +167,74 @@ def parse_args():
         'docker',
         help='Filter packages from Docker Hub.')
     docker_parser.set_defaults(func=docker)
+    docker_parser.add_argument('--random-select',
+                               dest='random_select',
+                               metavar='N',
+                               type=int,
+                               default=-1,
+                               help='Randomly select N packages. '
+                               'Defaults to -1, which means all.')
+    docker_parser.add_argument('--min-downloads',
+                               dest='min_downloads',
+                               metavar='N',
+                               type=int,
+                               default=1,
+                               help='The minimum number of downloads. '
+                               'Defaults to 1.')
+    docker_parser.add_argument('--min-versions',
+                               dest='min_versions',
+                               metavar='N',
+                               type=int,
+                               default=1,
+                               help='The minimum number of versions. '
+                               'Defaults to 1.')
 
     # Maven subparser
     maven_parser = subparsers.add_parser(
         'maven',
         help='Filter packages from Maven.')
     maven_parser.set_defaults(func=maven)
+    maven_parser.add_argument('--random-select',
+                              dest='random_select',
+                              metavar='N',
+                              type=int,
+                              default=-1,
+                              help='Randomly select N packages. '
+                              'Defaults to -1, which means all.')
+    maven_parser.add_argument('--min-versions',
+                              dest='min_versions',
+                              metavar='N',
+                              type=int,
+                              default=1,
+                              help='The minimum number of versions. '
+                              'Defaults to 1.')
+    maven_parser.add_argument('--min-dependants',
+                              dest='min_dependants',
+                              metavar='N',
+                              type=int,
+                              default=1,
+                              help='The minimum number of dependants. '
+                              'Defaults to 1.')
 
     # PyPI subparser
     pypi_parser = subparsers.add_parser(
         'pypi',
         help='Filter packages from PyPI.')
     pypi_parser.set_defaults(func=pypi)
+    pypi_parser.add_argument('--random-select',
+                             dest='random_select',
+                             metavar='N',
+                             type=int,
+                             default=-1,
+                             help='Randomly select N packages. '
+                             'Defaults to -1, which means all.')
+    pypi_parser.add_argument('--min-versions',
+                             dest='min_versions',
+                             metavar='N',
+                             type=int,
+                             default=1,
+                             help='The minimum number of versions. '
+                             'Defaults to 1.')
 
     args = parser.parse_args()
 

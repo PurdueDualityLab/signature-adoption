@@ -46,6 +46,10 @@ def filter(input_path,
             # Load the line as JSON
             package = json.loads(line)
 
+            if package['downloads'] is None or \
+                    package['versions_count'] is None:
+                continue
+
             # Check if the package has enough downloads and likes
             if package['downloads'] >= min_downloads and \
                     package['versions_count'] >= min_versions:
