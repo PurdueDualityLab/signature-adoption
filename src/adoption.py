@@ -10,7 +10,8 @@ import logging as log
 from datetime import datetime
 from docker.adoption import adoption as docker_adoption
 from maven.adoption import adoption as maven_adoption
-from npm.adoption import adoption as npm_adoption
+from pypi.adoption import adoption as pypi_adoption
+from huggingface.adoption import adoption as huggingface_adoption
 from util.files import valid_path_create, valid_path
 
 
@@ -29,12 +30,10 @@ def docker(args):
 
     args: The arguments passed to the script.
     '''
-    docker_adoption(input_file_path=args.input_file,
-                    output_file_path=args.output_file,
-                    start=args.start,
-                    end=args.end,
-                    min_downloads=args.min_downloads,
-                    min_versions=args.min_versions)
+    docker_adoption(
+        input_file_path=args.input_file,
+        output_file_path=args.output_file
+    )
 
 
 def pypi(args):
@@ -43,23 +42,12 @@ def pypi(args):
 
     args: The arguments passed to the script.
     '''
-    pass
-
-
-def npm(args):
-    '''
-    This function checks the adoption of signatures for packages from npm.
-
-    args: The arguments passed to the script.
-    '''
     args.download_dir = valid_path_create(args.download_dir, folder=True)
-    npm_adoption(input_file_path=args.input_file,
-                 output_file_path=args.output_file,
-                 download_path=args.download_dir,
-                 start=args.start,
-                 end=args.end,
-                 min_downloads=args.min_downloads,
-                 min_versions=args.min_versions)
+    pypi_adoption(
+        input_file_path=args.input_file,
+        output_file_path=args.output_file,
+        download_path=args.download_dir,
+    )
 
 
 def huggingface(args):
@@ -69,7 +57,13 @@ def huggingface(args):
 
     args: The arguments passed to the script.
     '''
-    pass
+    args.download_dir = valid_path_create(args.download_dir, folder=True)
+    huggingface_adoption(
+        input_file_path=args.input_file,
+        output_file_path=args.output_file,
+        download_path=args.download_dir,
+        save=args.save,
+    )
 
 
 def maven(args):
@@ -79,12 +73,11 @@ def maven(args):
     args: The arguments passed to the script.
     '''
     args.download_dir = valid_path_create(args.download_dir, folder=True)
-    maven_adoption(input_file_path=args.input_file,
-                   output_file_path=args.output_file,
-                   download_path=args.download_dir,
-                   start=args.start,
-                   end=args.end,
-                   min_versions=args.min_versions)
+    maven_adoption(
+        input_file_path=args.input_file,
+        output_file_path=args.output_file,
+        download_path=args.download_dir,
+    )
 
 
 # Function to parse arguments
@@ -102,24 +95,30 @@ def parse_args():
         'a list of packages with their signature adoption status.')
 
     # global arguments
-    parser.add_argument('--input-file',
-                        type=str,
-                        default='./data/-reg-/packages.ndjson',
-                        help='The name of the input file for the registry. '
-                        'Defaults to <./data/-reg-/packages.ndjson>. '
-                        'The -reg- will be replaced with the registry name.')
-    parser.add_argument('--output-file',
-                        type=str,
-                        default='./data/-reg-/adoption.ndjson',
-                        help='The name of the output file for the registry. '
-                        'Defaults to <./data/-reg-/adoption.ndjson>. '
-                        'The -reg- will be replaced with the registry name.')
-    parser.add_argument('--log',
-                        type=str,
-                        default='./logs/-reg-/adoption.log',
-                        help='The path to the log file. '
-                        'Defaults to <./logs/-reg-/adoption.log>. '
-                        'The -reg- will be replaced with the registry name.')
+    parser.add_argument(
+        '--input-file',
+        type=str,
+        default='./data/-reg-/filter.ndjson',
+        help='The name of the input file for the registry. '
+        'Defaults to <./data/-reg-/filter.ndjson>. '
+        'The -reg- will be replaced with the registry name.'
+    )
+    parser.add_argument(
+        '--output-file',
+        type=str,
+        default='./data/-reg-/adoption.ndjson',
+        help='The name of the output file for the registry. '
+        'Defaults to <./data/-reg-/adoption.ndjson>. '
+        'The -reg- will be replaced with the registry name.'
+    )
+    parser.add_argument(
+        '--log',
+        type=str,
+        default='./logs/-reg-/adoption.log',
+        help='The path to the log file. '
+        'Defaults to <./logs/-reg-/adoption.log>. '
+        'The -reg- will be replaced with the registry name.'
+    )
 
     # Create subparsers
     subparsers = parser.add_subparsers(
@@ -131,94 +130,40 @@ def parse_args():
     # Docker subparser
     docker_parser = subparsers.add_parser('docker')
     docker_parser.set_defaults(func=docker)
-    docker_parser.add_argument('--start',
-                               type=int,
-                               default=0,
-                               help='The starting line of the input file. '
-                               'Defaults to 0.')
-    docker_parser.add_argument('--end',
-                               type=int,
-                               default=-1,
-                               help='The ending line of the input file. '
-                               'Defaults to -1 (the last line).')
-    docker_parser.add_argument('--min-downloads',
-                               type=int,
-                               default=1,
-                               help='The minimum number of downloads for a '
-                               'package to be considered for adoption. '
-                               'Defaults to 1.')
-    docker_parser.add_argument('--min-versions',
-                               type=int,
-                               default=1,
-                               help='The minimum number of versions for a '
-                               'package to be considered for adoption. '
-                               'Defaults to 1.')
 
     # PyPI subparser
     pypi_parser = subparsers.add_parser('pypi')
     pypi_parser.set_defaults(func=pypi)
 
-    # npm subparser
-    npm_parser = subparsers.add_parser('npm')
-    npm_parser.set_defaults(func=npm)
-    npm_parser.add_argument('--start',
-                            type=int,
-                            default=0,
-                            help='The starting line of the input file. '
-                            'Defaults to 0.')
-    npm_parser.add_argument('--end',
-                            type=int,
-                            default=-1,
-                            help='The ending line of the input file. '
-                            'Defaults to -1 (the last line).')
-    npm_parser.add_argument('--min-versions',
-                            type=int,
-                            default=2,
-                            help='The minimum number of versions for a '
-                            'package to be considered for adoption. '
-                            'Defaults to 2.')
-    npm_parser.add_argument('--min-downloads',
-                            type=int,
-                            default=20,
-                            help='The minimum number of downloads for a '
-                            'package to be considered for adoption. '
-                            'Defaults to 20.')
-    npm_parser.add_argument('--download-dir',
-                            type=str,
-                            default='./data/npm/downloads/',
-                            help='The path to the directory to download '
-                            'files to. Defaults to '
-                            '<./data/npm/downloads/>.')
-
     # HuggingFace subparser
     huggingface_parser = subparsers.add_parser('huggingface')
     huggingface_parser.set_defaults(func=huggingface)
+    huggingface_parser.add_argument(
+        '--dl-dir',
+        '-d',
+        metavar='DIR',
+        dest='download_dir',
+        type=str,
+        default='./data/huggingface/downloads/',
+        help='The path to the directory to download '
+        'files to. Defaults to '
+        '<./data/huggingface/downloads/>.'
+    )
 
     # Maven subparser
     maven_parser = subparsers.add_parser('maven')
     maven_parser.set_defaults(func=maven)
-    maven_parser.add_argument('--start',
-                              type=int,
-                              default=0,
-                              help='The starting line of the input file. '
-                              'Defaults to 0.')
-    maven_parser.add_argument('--end',
-                              type=int,
-                              default=-1,
-                              help='The ending line of the input file. '
-                              'Defaults to -1 (the last line).')
-    maven_parser.add_argument('--min-versions',
-                              type=int,
-                              default=1,
-                              help='The minimum number of versions for a '
-                              'package to be considered for adoption. '
-                              'Defaults to 1.')
-    maven_parser.add_argument('--download-dir',
-                              type=str,
-                              default='./data/maven/downloads/',
-                              help='The path to the directory to download '
-                              'files to. Defaults to '
-                              '<./data/maven/downloads/>.')
+    maven_parser.add_argument(
+        '--dl-dir',
+        '-d',
+        metavar='DIR',
+        dest='download_dir',
+        type=str,
+        default='./data/maven/downloads/',
+        help='The path to the directory to download '
+        'files to. Defaults to '
+        '<./data/maven/downloads/>.'
+    )
 
     # Parse arguments
     args = parser.parse_args()

@@ -198,12 +198,7 @@ def check_signatures(package, download_path):
     return package
 
 
-def adoption(input_file_path,
-             output_file_path,
-             download_path,
-             start=0,
-             end=-1,
-             min_versions=1):
+def adoption(input_file_path, output_file_path, download_path):
     '''
     This function checks the adoption of signatures for packages from Maven
     Central. It takes a newline delimited JSON file and outputs a newline
@@ -215,13 +210,6 @@ def adoption(input_file_path,
 
     download_path: the path to the directory to download files to.
 
-    start: the line to start on. Default is 0 (start of file).
-
-    end: the line to end on. Default is -1 (end of file).
-
-    min_versions: the minimum number of versions for a package to be
-    considered. Default is 1.
-
     returns: None.
     '''
 
@@ -229,9 +217,6 @@ def adoption(input_file_path,
     log.info('Checking signature adoption for Maven Central packages.')
     log.info(f'Input file: {input_file_path}')
     log.info(f'Output file: {output_file_path}')
-    log.info(f'Start: {start}')
-    log.info(f'End: {end}')
-    log.info(f'Min Versions: {min_versions}')
 
     with open(input_file_path, 'r') as input_file, \
             open(output_file_path, 'a') as output_file:
@@ -239,22 +224,8 @@ def adoption(input_file_path,
         # Read input file
         for indx, line in enumerate(input_file):
 
-            # Skip lines and check for end
-            if indx < start:
-                continue
-            if end != -1 and indx >= end:
-                break
-
             # Parse line
             package = json.loads(line)
-
-            # Check for minimum versions
-            versions_count = package['versions_count']
-            versions_count = 0 if versions_count is None else versions_count
-
-            if versions_count < min_versions:
-                log.debug('skipping this package')
-                continue
 
             # Check signatures and write to file
             log.info(f'Processing package number {indx}: {package["name"]}')

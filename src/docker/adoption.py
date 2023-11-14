@@ -38,12 +38,7 @@ def get_signatures(package_name):
     return json.loads(output.stdout), output.stderr.decode("utf-8")
 
 
-def adoption(input_file_path,
-             output_file_path,
-             start=0,
-             end=-1,
-             min_downloads=1,
-             min_versions=1):
+def adoption(input_file_path, output_file_path):
     '''
     This function checks the adoption of signatures for packages from Docker
     Hub. It takes a newline delimited JSON file and outputs a newline
@@ -52,16 +47,6 @@ def adoption(input_file_path,
     input_file_path: the path to the input file.
 
     output_file_path: the path to the output file.
-
-    start: the line to start on. Default is 0 (start of file).
-
-    end: the line to end on. Default is -1 (end of file).
-
-    min_downloads: the minimum number of downloads for a package to be
-    considered. Default is 1.
-
-    min_versions: the minimum number of versions for a package to be
-    considered. Default is 1.
 
     returns: None.
     '''
@@ -77,12 +62,6 @@ def adoption(input_file_path,
         # Read input file
         for indx, line in enumerate(input_file):
 
-            # Skip lines and check for end
-            if indx < start:
-                continue
-            if end != -1 and indx >= end:
-                break
-
             # Log progress
             if indx % 100 == 0:
                 log.info(f'Processing package {indx}.')
@@ -91,24 +70,14 @@ def adoption(input_file_path,
             package = json.loads(line)
             package_name = package['name']
 
-            # Check for minimum downloads
-            downloads = package['downloads']
-            downloads = 0 if downloads is None else downloads
-            if downloads < min_downloads:
-                continue
-
-            # Check for minimum versions
-            versions_count = package['versions_count']
-            versions_count = 0 if versions_count is None else versions_count
-            if versions_count < min_versions:
-                continue
-
             # Get package's signatures
             signatures, stderr = get_signatures(package_name)
 
             # Add signatures to package
-            package['signatures'] = signatures
-            package['stderr'] = stderr
+            package['signatures'] = {
+                'dct': signatures,
+                'stderr': stderr
+            }
 
             # Write package to output file
             json.dump(package, output_file, default=str)
