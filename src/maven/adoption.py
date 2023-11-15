@@ -90,6 +90,7 @@ def check_file(version_url, file_name, extensions, download_path):
             "--keyserver",
             "keyserver.ubuntu.com",
             "--verify",
+            "--verbose",
             f"{signature_path}",
             f"{file_path}"
         ],
@@ -193,17 +194,15 @@ def check_signatures(package, download_dir):
     return package
 
 
-def adoption(input_file_path, output_file_path, download_path):
+def adoption(input_file_path, output_file_path, download_dir):
     '''
     This function checks the adoption of signatures for packages from Maven
     Central. It takes a newline delimited JSON file and outputs a newline
     delimited JSON file with the signatures added.
 
     input_file_path: the path to the input file.
-
     output_file_path: the path to the output file.
-
-    download_path: the path to the directory to download files to.
+    download_dir: the path to the directory to download files to.
 
     returns: None.
     '''
@@ -212,6 +211,7 @@ def adoption(input_file_path, output_file_path, download_path):
     log.info('Checking signature adoption for Maven Central packages.')
     log.info(f'Input file: {input_file_path}')
     log.info(f'Output file: {output_file_path}')
+    log.info(f'Download directory: {download_dir}')
 
     with open(input_file_path, 'r') as input_file, \
             open(output_file_path, 'w') as output_file:
@@ -222,12 +222,19 @@ def adoption(input_file_path, output_file_path, download_path):
             # Parse line
             package = json.loads(line)
 
-            # Check signatures and write to file
-            log.info(f'Processing package number {indx}: {package["name"]}')
-            package_and_signatures = check_signatures(package, download_path)
+            # Log progress
+            if indx % 100 == 0:
+                log.info(f'Processing package number {indx}: '
+                         f'{package["name"]}')
+            else:
+                log.debug(f'Processing package number {indx}: '
+                          f'{package["name"]}')
+
+            # Check signatures
+            package_and_signatures = check_signatures(package, download_dir)
 
             # Write to file
-            log.info('Writing to file')
+            log.debug('Writing to file')
             json.dump(obj=package_and_signatures,
                       fp=output_file,
                       default=str)

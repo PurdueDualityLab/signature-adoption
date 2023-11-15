@@ -5,7 +5,7 @@
 4. [Requirements](#requirements)
     1. [PostgreSQL](#postgresql)
     2. [Big Query Authentication](#big-query-authentication)
-    3. [HuggingFace Token](#huggingface-token)
+    3. [HuggingFace Authentication](#huggingface-authentication)
     4. [Python](#python)
 5. [Running](#running)
     1.  [Get Packages](#get-packages)
@@ -68,9 +68,14 @@ export GOOGLE_APPLICATION_CREDENTIALS=<creds_file>
 ```
 Check documentation at https://cloud.google.com/docs/authentication/provide-credentials-adc for more information.
 
-## HuggingFace Token
+## HuggingFace Authentication
 [packages.py](src/packages.py) requires an access token to interface with the HuggingFace API.
+See your [Hugging Face](https://huggingface.co/settings/tokens) account settings for more details.
 Pass a file containing this token to the script in command line.
+
+[adoption.py](src/adoption.py) requires an ssh key to perform git clones of repositories.
+Ensure that this machine has a ssh key that is linked to a valid HuggingFace account.
+See your [Hugging Face](https://huggingface.co/settings/keys) account settings for more details.
 
 ## Python
 The scripts for this project are written in Python.

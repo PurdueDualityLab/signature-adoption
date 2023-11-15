@@ -158,6 +158,8 @@ def adoption(
             # Log progress
             if indx % 100 == 0:
                 log.info(f'Processing package {indx}.')
+            else:
+                log.debug(f'Processing package {indx}.')
 
             # Parse line
             package = json.loads(line)
@@ -168,12 +170,18 @@ def adoption(
             repo_path = os.path.join(download_dir, local_name)
 
             # Clone the repository
-            repo = clone_repo(package['url'], repo_path)
+            repo_url = f'git@hf.co:{model_id}'
+            repo = clone_repo(repo_url, repo_path)
 
             # Check for a valid repository and check commits for signatures
             commits_data = None
             if repo is not None:
                 commits_data = check_commits(repo, repo_path)
+
+            # If no commits, log warning and continue
+            if commits_data is None:
+                log.warning(f'Skipping {model_id}.')
+                continue
 
             # Add signature adoption to package
             package['commits'] = commits_data
