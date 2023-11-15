@@ -195,11 +195,13 @@ def setup_logger(args):
     '''
     # Set up logger
     log_level = log.DEBUG if __debug__ else log.INFO
-    log.basicConfig(filename=args.log,
-                    filemode='a',
-                    level=log_level,
-                    format='%(asctime)s|%(levelname)s|%(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+    log.basicConfig(
+        filename=args.log,
+        filemode='a',
+        level=log_level,
+        format=f'%(asctime)s|%(levelname)s|{args.registry}|%(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
     # Log start time
     log.info('Starting packages script.')

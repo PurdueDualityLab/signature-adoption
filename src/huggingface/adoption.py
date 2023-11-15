@@ -150,7 +150,7 @@ def adoption(
     log.info(f'Download directory: {download_dir}')
 
     with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'a') as output_file:
+            open(output_file_path, 'w') as output_file:
 
         # Read input file
         for indx, line in enumerate(input_file):

@@ -46,7 +46,7 @@ def pypi(args):
     pypi_adoption(
         input_file_path=args.input_file,
         output_file_path=args.output_file,
-        download_path=args.download_dir,
+        download_dir=args.download_dir,
     )
 
 
@@ -61,7 +61,7 @@ def huggingface(args):
     huggingface_adoption(
         input_file_path=args.input_file,
         output_file_path=args.output_file,
-        download_path=args.download_dir,
+        download_dir=args.download_dir,
         save=args.save,
     )
 
@@ -76,7 +76,7 @@ def maven(args):
     maven_adoption(
         input_file_path=args.input_file,
         output_file_path=args.output_file,
-        download_path=args.download_dir,
+        download_dir=args.download_dir,
     )
 
 
@@ -114,9 +114,9 @@ def parse_args():
     parser.add_argument(
         '--log',
         type=str,
-        default='./logs/-reg-/adoption.log',
+        default='./logs/adoption.log',
         help='The path to the log file. '
-        'Defaults to <./logs/-reg-/adoption.log>. '
+        'Defaults to <./logs/adoption.log>. '
         'The -reg- will be replaced with the registry name.'
     )
 
@@ -134,6 +134,16 @@ def parse_args():
     # PyPI subparser
     pypi_parser = subparsers.add_parser('pypi')
     pypi_parser.set_defaults(func=pypi)
+    pypi_parser.add_argument(
+        '--dl-dir',
+        '-d',
+        metavar='DIR',
+        dest='download_dir',
+        type=str,
+        default='./data/pypi/downloads/',
+        help='The path to the directory to download files to. Defaults to '
+        '<./data/pypi/downloads/>.'
+    )
 
     # HuggingFace subparser
     huggingface_parser = subparsers.add_parser('huggingface')
@@ -145,9 +155,16 @@ def parse_args():
         dest='download_dir',
         type=str,
         default='./data/huggingface/downloads/',
-        help='The path to the directory to download '
-        'files to. Defaults to '
+        help='The path to the directory to download files to. Defaults to '
         '<./data/huggingface/downloads/>.'
+    )
+    huggingface_parser.add_argument(
+        '--save',
+        '-s',
+        dest='save',
+        action='store_true',
+        help='If this flag is set, the downloaded files '
+        'will be saved.'
     )
 
     # Maven subparser
@@ -169,8 +186,7 @@ def parse_args():
     args = parser.parse_args()
 
     # Normalize paths
-    args.log = valid_path_create(
-        args.log.replace('-reg-', args.registry))
+    args.log = valid_path_create(args.log)
     args.output_file = valid_path_create(
         args.output_file.replace('-reg-', args.registry))
     args.input_file = valid_path(
@@ -185,12 +201,13 @@ def setup_logger(args):
     '''
     # Set up logger
     log_level = log.DEBUG if __debug__ else log.INFO
-    log.basicConfig(filename=args.log,
-                    filemode='a',
-                    level=log_level,
-                    format=f'%(asctime)s|%(levelname)s|{args.registry}'
-                    '|%(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+    log.basicConfig(
+        filename=args.log,
+        filemode='a',
+        level=log_level,
+        format=f'%(asctime)s|%(levelname)s|{args.registry}|%(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
     # Log start time
     log.info("Starting adoption.py.")

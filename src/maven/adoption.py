@@ -23,7 +23,6 @@ def download_file(remote_file_url, local_file_path):
     This function downloads a file to a local path using wget.
 
     remote_file_url: url of file to download.
-
     local_file_path: path to save file to.
 
     returns: True if file is downloaded, False otherwise.
@@ -53,11 +52,8 @@ def check_file(version_url, file_name, extensions, download_path):
     Central.
 
     version_url: the URL for the package version.
-
     file_name: the name of the file to check.
-
     extensions: all of the extensions for the file.
-
     download_path: the path to the directory to download files to.
 
     returns: The results of a GPG check.
@@ -149,13 +145,12 @@ def get_files(version_url):
     return file_extensions
 
 
-def check_signatures(package, download_path):
+def check_signatures(package, download_dir):
     '''
     This function gets the signatures for a package from Maven Central.
 
     package: the package to get the signatures for.
-
-    download_path: the path to the directory to download files to.
+    download_dir: the path to the directory to download files to.
 
     returns: the package with the signatures added.
     '''
@@ -186,7 +181,7 @@ def check_signatures(package, download_path):
         for file_name, extensions in files.items():
 
             stdout, stderr = check_file(version_url, file_name,
-                                        extensions, download_path)
+                                        extensions, download_dir)
             version['files'].append({
                 'name': file_name,
                 'extensions': extensions,
@@ -219,7 +214,7 @@ def adoption(input_file_path, output_file_path, download_path):
     log.info(f'Output file: {output_file_path}')
 
     with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'a') as output_file:
+            open(output_file_path, 'w') as output_file:
 
         # Read input file
         for indx, line in enumerate(input_file):

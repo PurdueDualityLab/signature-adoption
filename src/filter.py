@@ -7,7 +7,7 @@
 import argparse
 import logging as log
 from datetime import datetime
-from util.files import valid_path_create, gen_path, valid_path
+from util.files import valid_path_create, gen_path
 from huggingface.filter import filter as huggingface_filter
 from docker.filter import filter as docker_filter
 from maven.filter import filter as maven_filter
@@ -258,11 +258,13 @@ def setup_logger(args):
     '''
     # Set up logger
     log_level = log.DEBUG if __debug__ else log.INFO
-    log.basicConfig(filename=args.log,
-                    filemode='a',
-                    level=log_level,
-                    format='%(asctime)s|%(levelname)s|%(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+    log.basicConfig(
+        filename=args.log,
+        filemode='a',
+        level=log_level,
+        format=f'%(asctime)s|%(levelname)s|{args.registry}|%(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
     # Log start time
     log.info('Starting filter script.')

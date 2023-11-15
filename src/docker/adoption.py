@@ -57,7 +57,7 @@ def adoption(input_file_path, output_file_path):
     log.info(f'Output file: {output_file_path}')
 
     with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'a') as output_file:
+            open(output_file_path, 'w') as output_file:
 
         # Read input file
         for indx, line in enumerate(input_file):
@@ -65,6 +65,8 @@ def adoption(input_file_path, output_file_path):
             # Log progress
             if indx % 100 == 0:
                 log.info(f'Processing package {indx}.')
+            else:
+                log.debug(f'Processing package {indx}.')
 
             # Parse line
             package = json.loads(line)

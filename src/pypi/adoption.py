@@ -6,12 +6,73 @@ PyPI.
 
 import json
 import subprocess
+import requests
 import logging as log
+import os
 
 
 # Author information
 __author__ = 'Taylor R. Schorlemmer and Rajeev Sashti'
 __email__ = 'tschorle@purdue.edu'
+
+
+def gpg_verify(file_path: str, signature_path: str) -> (str, str):
+    '''
+    This function runs the gpg verify command on a file and signature.
+
+    file_path: The path to the file to verify.
+    signature_path: The path to the signature.
+
+    return: The stdout and stderr of the gpg verify command.
+    '''
+
+    # Run the gpg verify command
+    output = subprocess.run(
+        [
+            "gpg",
+            "--keyserver-options",
+            "auto-key-retrieve",
+            "--keyserver",
+            "keyserver.ubuntu.com",
+            "--verify",
+            "--verbose",
+            f"{signature_path}",
+            f"{file_path}"
+        ],
+        capture_output=True)
+
+    # Return the stdout and stderr
+    return output.stdout.decode('utf-8'), output.stderr.decode('utf-8')
+
+
+def download_file(remote_file_url: str, local_file_path: str) -> bool:
+    '''
+    This function downloads a file to a local path using requests.
+
+    remote_file_url: url of file to download.
+    local_file_path: path to save file to.
+
+    returns: True if file is downloaded, False otherwise.
+    '''
+
+    # Download the file
+    response = requests.get(remote_file_url)
+
+    # Check if the file was downloaded
+    if not response:
+        log.warning(f'Could not download file {remote_file_url}.')
+        return False
+    if response.status_code != 200:
+        log.warning(f'Could not download file {remote_file_url}.')
+        log.warning(f'Code: {response.status_code}')
+        return False
+
+    # Write the file
+    with open(local_file_path, "wb") as local_file:
+        local_file.write(response.content)
+
+    # Return True if file is downloaded
+    return True
 
 
 def url_construction(digest: str, filename: str) -> str:
@@ -53,7 +114,7 @@ def adoption(input_file_path, output_file_path, download_dir):
     log.info(f'Download directory: {download_dir}')
 
     with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'a') as output_file:
+            open(output_file_path, 'w') as output_file:
 
         # Read input file
         for indx, line in enumerate(input_file):
@@ -61,51 +122,68 @@ def adoption(input_file_path, output_file_path, download_dir):
             # Log progress
             if indx % 100 == 0:
                 log.info(f'Processing package {indx}.')
+            else:
+                log.debug(f'Processing package {indx}.')
 
             # Parse line
             package = json.loads(line)
 
-            # Add placeholder for signature adoption
-            package['signature'] = None
+            # Iterate through versions
+            for version_name, files in package['versions'].items():
 
-            # Check if the package has a signature
-            if package['has_signature']:
+                # Iterate through files
+                for file in files:
 
-                # Create url and download files
-                filename = package['filename']
-                url = url_construction(digest=package['blake2_256_digest'],
-                                       filename=filename)
-                subprocess.run(['wget', url], capture_output=True)
-                subprocess.run(['wget', url+'.asc'], capture_output=True)
+                    # Add placeholder for signature adoption
+                    file['signature'] = None
 
-                # Run the gpg verify command
-                output = subprocess.run(
-                    [
-                        "gpg",
-                        "--keyserver-options",
-                        "auto-key-retrieve",
-                        "--keyserver",
-                        "keyserver.ubuntu.com",
-                        "--verify",
-                        "--verbose",
-                        f"{filename}.asc",
-                        f"{filename}"
-                    ],
-                    capture_output=True)
+                    # Check if the package has a signature
+                    if file['has_signature']:
 
-                # Add signature adoption to package
-                package['signature'] = {
-                    'stdout': output.stdout.decode("utf-8"),
-                    'stderr': output.stderr.decode("utf-8")
-                }
+                        # Create url and local file name
+                        filename = file['filename']
+                        local_file_path = os.path.join(download_dir, filename)
+                        url = url_construction(
+                            digest=file['blake2_256_digest'],
+                            filename=filename
+                        )
 
-                # Write package to output file
-                json.dump(package, output_file, default=str)
-                output_file.write('\n')
+                        # Download the file and signature
+                        dl_file = download_file(
+                            remote_file_url=url,
+                            local_file_path=local_file_path
+                        )
+                        dl_sign = download_file(
+                            remote_file_url=url+'.asc',
+                            local_file_path=local_file_path+'.asc'
+                        )
 
-                # Remove the files
-                subprocess.run(['rm', '-r', filename])
-                subprocess.run(['rm', '-r', filename+'.asc'])
+                        # Check if the file was downloaded
+                        if not dl_file or not dl_sign:
+                            log.warning(
+                                f'Missing file, skipping ver.: {version_name}'
+                            )
+
+                        # Verify the signature
+                        stdout, stderr = gpg_verify(
+                            file_path=local_file_path,
+                            signature_path=local_file_path+'.asc'
+                        )
+
+                        # Add signature adoption to package
+                        file['signature'] = {
+                            'stdout': stdout,
+                            'stderr': stderr
+                        }
+
+                        # Remove the files
+                        subprocess.run(['rm', '-r', local_file_path])
+                        subprocess.run(['rm', '-r', local_file_path+'.asc'])
+
+            # Write package to output file
+            log.debug(f'Writing package {indx} to file.')
+            json.dump(package, output_file, default=str)
+            output_file.write('\n')
 
     log.info('Finished checking adoption of signatures for packages from '
              'PyPI.')
