@@ -107,6 +107,7 @@ def parse_args():
         '--input',
         '-i',
         dest='input_file',
+        metavar='FILE',
         type=str,
         default='./data/-reg-/filter.ndjson',
         help='The name of the input file for the registry. '
@@ -117,6 +118,7 @@ def parse_args():
         '--output',
         '-o',
         dest='output_file',
+        metavar='FILE',
         type=str,
         default='./data/-reg-/adoption.ndjson',
         help='The name of the output file for the registry. '
@@ -128,6 +130,7 @@ def parse_args():
         '-l',
         type=str,
         default='./logs/adoption.log',
+        metavar='FILE',
         help='The path to the log file. '
         'Defaults to <./logs/adoption.log>. '
         'The -reg- will be replaced with the registry name.'
