@@ -11,5 +11,6 @@ data/
 logs/
 sub/
 env/
+*.egg-info/
 
 

@@ -8,7 +8,7 @@ for all registries supported by this project.
 import argparse
 import logging as log
 from datetime import datetime
-from util.files import valid_path_create, gen_path, valid_path
+from signature_adoption.util.files import valid_path_create, gen_path, valid_path
 from huggingface.packages import packages as huggingface_packages
 from docker.packages import packages as docker_packages
 from maven.packages import packages as maven_packages
