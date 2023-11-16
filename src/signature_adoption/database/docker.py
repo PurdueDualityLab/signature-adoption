@@ -9,7 +9,7 @@ database.
 import json
 import subprocess
 import logging as log
-from .. import util
+from ..util import signature_parser
 
 
 # Author information
@@ -22,5 +22,4 @@ def database():
     This function adds adoption data from Docker Hub to the database.
     '''
 
-    util.signature_parser.test()
-
+    signature_parser.test()

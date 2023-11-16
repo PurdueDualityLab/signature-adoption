@@ -7,9 +7,10 @@ SQLite database that can be queried.
 # Imports
 import argparse
 import logging as log
+import sqlite3
 from datetime import datetime
-from docker.database import database as docker_database
-from util.files import valid_path_create, valid_path
+from .docker import database as docker_database
+from ..util.files import valid_path_create, valid_path
 
 
 # Author information
@@ -196,6 +197,56 @@ def log_finish():
              f'{datetime.now()-script_start_time}')
 
 
+def ensure_db_tables(args):
+    '''
+    This function ensures that the database tables exist.
+
+    args: The arguments passed to the script.
+    '''
+    # Log start
+    log.info('Ensuring database exists.')
+
+    # Connect to database
+    conn = sqlite3.connect(args.db_file)
+    cursor = conn.cursor()
+
+    # Create package table
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS package (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            registry TEXT NOT NULL,
+            UNIQUE (name, registry)
+        );
+        '''
+    )
+
+    # Create version table
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS version (
+            id INTEGER PRIMARY KEY,
+            package_id INTEGER NOT NULL,
+            version TEXT NOT NULL,
+            UNIQUE (package_id, version)
+        );
+        '''
+    )
+
+    # Create signature unit table
+    cursor.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS signature_unit (
+            id INTEGER PRIMARY KEY,
+            version_id INTEGER NOT NULL,
+            unit TEXT NOT NULL,
+            UNIQUE (version_id, unit)
+        );
+        '''
+    )
+
+
 def main():
     '''
     This is the main function of the script.
@@ -205,6 +256,9 @@ def main():
 
     # Setup logger
     setup_logger(args)
+
+    # Ensure database tables exist
+    ensure_db_tables(args)
 
     # Check adoption of signatures the function is set by the subparser
     args.func(args)

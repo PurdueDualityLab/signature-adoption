@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
-'''filter.py: This script filters the list of packages for each registry.
+'''
+__main__.py: This script filters the list of packages for each registry.
 '''
 
 # Import statements
 import argparse
 import logging as log
 from datetime import datetime
-from util.files import valid_path_create, gen_path
-from huggingface.filter import filter as huggingface_filter
-from docker.filter import filter as docker_filter
-from maven.filter import filter as maven_filter
-from pypi.filter import filter as pypi_filter
+from ..util.files import valid_path_create, gen_path
+from .huggingface import filter as huggingface_filter
+from .docker import filter as docker_filter
+from .maven import filter as maven_filter
+from .pypi import filter as pypi_filter
 
 # authorship information
 __author__ = "Taylor R. Schorlemmer"

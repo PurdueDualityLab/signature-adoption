@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-'''adoption.py: This script checks the adoption of signatures for different
+'''
+__main__.py: This script checks the adoption of signatures for different
 registries.
 '''
 
@@ -8,11 +9,11 @@ registries.
 import argparse
 import logging as log
 from datetime import datetime
-from docker.adoption import adoption as docker_adoption
-from maven.adoption import adoption as maven_adoption
-from pypi.adoption import adoption as pypi_adoption
-from huggingface.adoption import adoption as huggingface_adoption
-from util.files import valid_path_create, valid_path
+from .docker import adoption as docker_adoption
+from .maven import adoption as maven_adoption
+from .pypi import adoption as pypi_adoption
+from .huggingface import adoption as huggingface_adoption
+from ..util.files import valid_path_create, valid_path
 
 
 # Author information
