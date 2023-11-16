@@ -94,15 +94,21 @@ def url_construction(digest: str, filename: str) -> str:
     return url
 
 
-def adoption(input_file_path, output_file_path, download_dir):
+def adoption(input_file_path, output_file_path, download_dir, start, stop):
     '''
     This function checks the adoption of signatures for packages from
     PyPI. It takes a newline delimited JSON file and outputs a newline
     delimited JSON file with the signatures added.
 
     input_file_path: the path to the input file.
+
     output_file_path: the path to the output file.
+
     download_dir: the directory to download the files to.
+
+    start: the line number to start at.
+
+    stop: the line number to stop at. If -1, go to the end of the file.
 
     returns: None.
     '''
@@ -112,12 +118,20 @@ def adoption(input_file_path, output_file_path, download_dir):
     log.info(f'Input file: {input_file_path}')
     log.info(f'Output file: {output_file_path}')
     log.info(f'Download directory: {download_dir}')
+    log.info(f'Start: {start}')
+    log.info(f'Stop: {stop}')
 
     with open(input_file_path, 'r') as input_file, \
             open(output_file_path, 'w') as output_file:
 
         # Read input file
         for indx, line in enumerate(input_file):
+
+            # Check if we are in the range
+            if indx < start:
+                continue
+            if indx >= stop and stop != -1:
+                break
 
             # Log progress
             if indx % 100 == 0:

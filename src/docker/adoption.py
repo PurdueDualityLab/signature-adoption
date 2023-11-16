@@ -38,7 +38,7 @@ def get_signatures(package_name):
     return json.loads(output.stdout), output.stderr.decode("utf-8")
 
 
-def adoption(input_file_path, output_file_path):
+def adoption(input_file_path, output_file_path, start, stop):
     '''
     This function checks the adoption of signatures for packages from Docker
     Hub. It takes a newline delimited JSON file and outputs a newline
@@ -48,6 +48,10 @@ def adoption(input_file_path, output_file_path):
 
     output_file_path: the path to the output file.
 
+    start: the line to start processing at.
+
+    stop: the line to stop processing at.
+
     returns: None.
     '''
 
@@ -55,12 +59,20 @@ def adoption(input_file_path, output_file_path):
     log.info('Checking adoption of signatures for packages from Docker Hub.')
     log.info(f'Input file: {input_file_path}')
     log.info(f'Output file: {output_file_path}')
+    log.info(f'Start: {start}')
+    log.info(f'Stop: {stop}')
 
     with open(input_file_path, 'r') as input_file, \
             open(output_file_path, 'w') as output_file:
 
         # Read input file
         for indx, line in enumerate(input_file):
+
+            # Check if we are in the range
+            if indx < start:
+                continue
+            if indx >= stop and stop != -1:
+                break
 
             # Log progress
             if indx % 100 == 0:

@@ -32,7 +32,9 @@ def docker(args):
     '''
     docker_adoption(
         input_file_path=args.input_file,
-        output_file_path=args.output_file
+        output_file_path=args.output_file,
+        start=args.start,
+        stop=args.stop,
     )
 
 
@@ -47,6 +49,8 @@ def pypi(args):
         input_file_path=args.input_file,
         output_file_path=args.output_file,
         download_dir=args.download_dir,
+        start=args.start,
+        stop=args.stop,
     )
 
 
@@ -63,6 +67,8 @@ def huggingface(args):
         output_file_path=args.output_file,
         download_dir=args.download_dir,
         save=args.save,
+        start=args.start,
+        stop=args.stop,
     )
 
 
@@ -77,6 +83,8 @@ def maven(args):
         input_file_path=args.input_file,
         output_file_path=args.output_file,
         download_dir=args.download_dir,
+        start=args.start,
+        stop=args.stop,
     )
 
 
@@ -96,7 +104,9 @@ def parse_args():
 
     # global arguments
     parser.add_argument(
-        '--input-file',
+        '--input',
+        '-i',
+        dest='input_file',
         type=str,
         default='./data/-reg-/filter.ndjson',
         help='The name of the input file for the registry. '
@@ -104,7 +114,9 @@ def parse_args():
         'The -reg- will be replaced with the registry name.'
     )
     parser.add_argument(
-        '--output-file',
+        '--output',
+        '-o',
+        dest='output_file',
         type=str,
         default='./data/-reg-/adoption.ndjson',
         help='The name of the output file for the registry. '
@@ -113,11 +125,26 @@ def parse_args():
     )
     parser.add_argument(
         '--log',
+        '-l',
         type=str,
         default='./logs/adoption.log',
         help='The path to the log file. '
         'Defaults to <./logs/adoption.log>. '
         'The -reg- will be replaced with the registry name.'
+    )
+    parser.add_argument(
+        '--start',
+        '-s',
+        type=int,
+        default=0,
+        help='The starting line to read from the input file. Defaults to 0.'
+    )
+    parser.add_argument(
+        '--stop',
+        '-t',
+        type=int,
+        default=-1,
+        help='The stopping line for the input file. Defaults to -1 (EOF).'
     )
 
     # Create subparsers
@@ -128,11 +155,17 @@ def parse_args():
         dest='registry')
 
     # Docker subparser
-    docker_parser = subparsers.add_parser('docker')
+    docker_parser = subparsers.add_parser(
+        'docker',
+        help='Check adoption for packages from Docker Hub.'
+    )
     docker_parser.set_defaults(func=docker)
 
     # PyPI subparser
-    pypi_parser = subparsers.add_parser('pypi')
+    pypi_parser = subparsers.add_parser(
+        'pypi',
+        help='Check adoption for packages from PyPI.'
+    )
     pypi_parser.set_defaults(func=pypi)
     pypi_parser.add_argument(
         '--dl-dir',
@@ -146,7 +179,10 @@ def parse_args():
     )
 
     # HuggingFace subparser
-    huggingface_parser = subparsers.add_parser('huggingface')
+    huggingface_parser = subparsers.add_parser(
+        'huggingface',
+        help='Check adoption for packages from HuggingFace.'
+    )
     huggingface_parser.set_defaults(func=huggingface)
     huggingface_parser.add_argument(
         '--dl-dir',
@@ -168,7 +204,10 @@ def parse_args():
     )
 
     # Maven subparser
-    maven_parser = subparsers.add_parser('maven')
+    maven_parser = subparsers.add_parser(
+        'maven',
+        help='Check adoption for packages from Maven.'
+    )
     maven_parser.set_defaults(func=maven)
     maven_parser.add_argument(
         '--dl-dir',

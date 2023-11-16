@@ -124,7 +124,9 @@ def adoption(
     input_file_path: str,
     output_file_path: str,
     download_dir: str,
-    save: bool = False
+    save: bool = False,
+    start: int = 0,
+    stop: int = -1,
 ):
     '''
     This function checks the adoption of signatures for packages from Hugging
@@ -140,6 +142,10 @@ def adoption(
     save: whether or not to save the downloaded files. If so, they will be
     saved in the download_dir and the folders will be turned into tar files.
 
+    start: the line number to start at.
+
+    stop: the line number to stop at. If -1, go to the end of the file.
+
     returns: None.
     '''
 
@@ -148,12 +154,21 @@ def adoption(
     log.info(f'Input file: {input_file_path}')
     log.info(f'Output file: {output_file_path}')
     log.info(f'Download directory: {download_dir}')
+    log.info(f'Save: {save}')
+    log.info(f'Start: {start}')
+    log.info(f'Stop: {stop}')
 
     with open(input_file_path, 'r') as input_file, \
             open(output_file_path, 'w') as output_file:
 
         # Read input file
         for indx, line in enumerate(input_file):
+
+            # Check if we are in the range
+            if indx < start:
+                continue
+            if indx >= stop and stop != -1:
+                break
 
             # Log progress
             if indx % 100 == 0:
