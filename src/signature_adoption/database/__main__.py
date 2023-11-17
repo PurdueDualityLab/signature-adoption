@@ -27,7 +27,12 @@ def docker(args):
 
     args: The arguments passed to the script.
     '''
-    docker_database()
+    docker_database(
+        input_file_path=args.input_file,
+        database_file_path=args.db_file,
+        start=args.start,
+        stop=args.stop
+    )
 
 
 def pypi(args):
@@ -118,6 +123,13 @@ def parse_args():
         default=-1,
         help='The stopping line for the input file. Defaults to -1 (EOF).'
     )
+    parser.add_argument(
+        '--clean',
+        '-c',
+        action='store_true',
+        help='Flag to clear existing data from the database before adding new '
+        'data. Defaults to False.'
+    )
 
     # Create subparsers
     subparsers = parser.add_subparsers(
@@ -203,6 +215,7 @@ def ensure_db_tables(args):
 
     args: The arguments passed to the script.
     '''
+
     # Log start
     log.info('Ensuring database exists.')
 
@@ -210,10 +223,17 @@ def ensure_db_tables(args):
     conn = sqlite3.connect(args.db_file)
     cursor = conn.cursor()
 
+    # Clear existing data if requested
+    if args.clean:
+        log.info('Clearing existing data from database.')
+        cursor.execute('DROP TABLE IF EXISTS packages;')
+        cursor.execute('DROP TABLE IF EXISTS versions;')
+        cursor.execute('DROP TABLE IF EXISTS units;')
+
     # Create package table
     cursor.execute(
         '''
-        CREATE TABLE IF NOT EXISTS package (
+        CREATE TABLE IF NOT EXISTS packages (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
             registry TEXT NOT NULL,
@@ -225,11 +245,13 @@ def ensure_db_tables(args):
     # Create version table
     cursor.execute(
         '''
-        CREATE TABLE IF NOT EXISTS version (
+        CREATE TABLE IF NOT EXISTS versions (
             id INTEGER PRIMARY KEY,
             package_id INTEGER NOT NULL,
-            version TEXT NOT NULL,
-            UNIQUE (package_id, version)
+            date TEXT,
+            name TEXT NOT NULL,
+            UNIQUE (package_id, name)
+            FOREIGN KEY (package_id) REFERENCES packages (id)
         );
         '''
     )
@@ -237,14 +259,26 @@ def ensure_db_tables(args):
     # Create signature unit table
     cursor.execute(
         '''
-        CREATE TABLE IF NOT EXISTS signature_unit (
+        CREATE TABLE IF NOT EXISTS units (
             id INTEGER PRIMARY KEY,
             version_id INTEGER NOT NULL,
+            package_id INTEGER NOT NULL,
             unit TEXT NOT NULL,
+            sig_type TEXT NOT NULL,
+            has_sig BOOLEAN NOT NULL,
+            sig_raw TEXT,
+            sig_status TEXT NOT NULL,
+            date TEXT,
             UNIQUE (version_id, unit)
+            FOREIGN KEY (version_id) REFERENCES versions (id)
+            FOREIGN KEY (package_id) REFERENCES packages (id)
         );
         '''
     )
+
+    # Disconnect from database
+    conn.commit()
+    conn.close()
 
 
 def main():
