@@ -28,7 +28,7 @@ def packages(output_path, auth_path):
     '''
 
     # Log start of function
-    log.info("Getting packages from Docker Hub.")
+    log.info("Getting packages from PyPI.")
 
     # If there is an authentication path, add it to the environment variable
     if auth_path is not None:

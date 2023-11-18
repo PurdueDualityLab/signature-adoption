@@ -8,8 +8,12 @@ SQLite database that can be queried.
 import argparse
 import logging as log
 import sqlite3
+import json
 from datetime import datetime
-from .docker import database as docker_database
+from .docker import add as docker_add
+from .pypi import add as pypi_add
+from .huggingface import add as huggingface_add
+from .maven import add as maven_add
 from ..util.files import valid_path_create, valid_path
 
 
@@ -19,47 +23,6 @@ __email__ = 'tschorle@purdue.edu'
 
 # Define global variables
 script_start_time = datetime.now()
-
-
-def docker(args):
-    '''
-    This function adds adoption data from Docker Hub to the database.
-
-    args: The arguments passed to the script.
-    '''
-    docker_database(
-        input_file_path=args.input_file,
-        database_file_path=args.db_file,
-        start=args.start,
-        stop=args.stop
-    )
-
-
-def pypi(args):
-    '''
-    This function adds adoption data from PyPI to the database.
-
-    args: The arguments passed to the script.
-    '''
-    pass
-
-
-def huggingface(args):
-    '''
-    This function adds adoption data from HuggingFace to the database.
-
-    args: The arguments passed to the script.
-    '''
-    pass
-
-
-def maven(args):
-    '''
-    This function adds adoption data from Maven Central to the database.
-
-    args: The arguments passed to the script.
-    '''
-    pass
 
 
 # Function to parse arguments
@@ -143,28 +106,28 @@ def parse_args():
         'docker',
         help='Add Docker Hub adoption data to the database.'
     )
-    docker_parser.set_defaults(func=docker)
+    docker_parser.set_defaults(func=docker_add)
 
     # PyPI subparser
     pypi_parser = subparsers.add_parser(
         'pypi',
         help='Add PyPI adoption data to the database.'
     )
-    pypi_parser.set_defaults(func=pypi)
+    pypi_parser.set_defaults(func=pypi_add)
 
     # HuggingFace subparser
     huggingface_parser = subparsers.add_parser(
         'huggingface',
         help='Add HuggingFace adoption data to the database.'
     )
-    huggingface_parser.set_defaults(func=huggingface)
+    huggingface_parser.set_defaults(func=huggingface_add)
 
     # Maven subparser
     maven_parser = subparsers.add_parser(
         'maven',
         help='Add Maven Central adoption data to the database.'
     )
-    maven_parser.set_defaults(func=maven)
+    maven_parser.set_defaults(func=maven_add)
 
     # Parse arguments
     args = parser.parse_args()
@@ -264,6 +227,7 @@ def ensure_db_tables(args):
             version_id INTEGER NOT NULL,
             package_id INTEGER NOT NULL,
             unit TEXT NOT NULL,
+            unit_type TEXT NOT NULL,
             sig_type TEXT NOT NULL,
             has_sig BOOLEAN NOT NULL,
             sig_raw TEXT,
@@ -281,6 +245,45 @@ def ensure_db_tables(args):
     conn.close()
 
 
+def add_to_db(args):
+    '''
+    This function adds adoption data to the database.
+
+    args: The arguments passed to the script.
+
+    returns: None
+    '''
+
+    # Open the input file and connect to the database
+    log.info(f'Opening input file {args.input_file} and '
+             f'connecting to database {args.db_file}')
+    with open(args.input_file, 'r') as input_file, \
+            sqlite3.connect(args.db_file) as database:
+
+        # Create the cursor
+        cursor = database.cursor()
+
+        # Iterate through the input file
+        for indx, line in enumerate(input_file):
+
+            if indx < args.start:
+                continue
+            elif indx >= args.stop and args.stop != -1:
+                break
+
+            # print progress
+            if indx % 100 == 0:
+                log.info(f'Processing line {indx}')
+            else:
+                log.debug(f'Processing line {indx}')
+
+            # Parse the line
+            package = json.loads(line)
+
+            # Add the package to the database using the appropriate function
+            args.func(package=package, cursor=cursor)
+
+
 def main():
     '''
     This is the main function of the script.
@@ -294,8 +297,8 @@ def main():
     # Ensure database tables exist
     ensure_db_tables(args)
 
-    # Check adoption of signatures the function is set by the subparser
-    args.func(args)
+    # Add data to database
+    add_to_db(args)
 
     # Log finish
     log_finish()
