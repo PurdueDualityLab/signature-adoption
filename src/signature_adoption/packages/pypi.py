@@ -88,7 +88,7 @@ def packages(output_path, auth_path):
 
     # Open file
     log.info(f'Opening file {output_path} for writing.')
-    with open(output_path, 'a') as f:
+    with open(output_path, 'w') as f:
         for name, versions in packages.items():
             json.dump(
                 {
