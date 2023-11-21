@@ -34,12 +34,16 @@ def add(package, cursor):
         cursor.execute(
             'INSERT INTO versions (package_id, date, name) '
             'VALUES (?, ?, ?)',
-            (package_id, files[0]['upload_time'], version_name)
+            (package_id, list(files.values())[0]['upload_time'], version_name)
         )
         version_id = cursor.lastrowid
 
         # Iterate through units
-        for file in files:
+        for file in files.values():
+
+            # Get raw signature
+            raw = None if file['signature'] is None else \
+                    file['signature']['stderr']
 
             cursor.execute(
                 'INSERT INTO units (version_id, package_id, unit, unit_type,'
@@ -52,7 +56,7 @@ def add(package, cursor):
                     'file',
                     'pgp',
                     file['has_signature'],
-                    file['signature'],
+                    raw,
                     parse_pgp(file['signature']),
                     file['upload_time']
                 )

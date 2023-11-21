@@ -58,7 +58,7 @@ def packages(output_path):
 
     # Open file
     log.info(f'Opening file {output_path} for writing.')
-    with open(output_path, 'a') as f:
+    with open(output_path, 'w') as f:
 
         # Execute query and get first package
         cur_pkgs.execute(query_pkgs)
