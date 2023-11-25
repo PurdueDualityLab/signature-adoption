@@ -6,10 +6,12 @@
 *.out
 *.sh
 *.pyc
+*.db
 __pycache__/
 data/
 logs/
 sub/
 env/
+*.egg-info/
 
 

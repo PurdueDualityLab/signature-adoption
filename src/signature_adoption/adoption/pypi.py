@@ -146,7 +146,7 @@ def adoption(input_file_path, output_file_path, download_dir, start, stop):
             for version_name, files in package['versions'].items():
 
                 # Iterate through files
-                for file in files:
+                for file in files.values():
 
                     # Add placeholder for signature adoption
                     file['signature'] = None

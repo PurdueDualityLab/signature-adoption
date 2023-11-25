@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-'''packages.py: This script gets the repositories and associated metadata
+'''
+__main__.py: This script gets the repositories and associated metadata
 for all registries supported by this project.
 '''
 
@@ -8,11 +9,11 @@ for all registries supported by this project.
 import argparse
 import logging as log
 from datetime import datetime
-from util.files import valid_path_create, gen_path, valid_path
-from huggingface.packages import packages as huggingface_packages
-from docker.packages import packages as docker_packages
-from maven.packages import packages as maven_packages
-from pypi.packages import packages as pypi_packages
+from ..util.files import valid_path_create, gen_path, valid_path
+from .huggingface import packages as huggingface_packages
+from .docker import packages as docker_packages
+from .maven import packages as maven_packages
+from .pypi import packages as pypi_packages
 
 # authorship information
 __author__ = "Taylor R. Schorlemmer"

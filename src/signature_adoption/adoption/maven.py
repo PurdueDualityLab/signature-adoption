@@ -171,12 +171,12 @@ def check_signatures(package, download_dir):
         version_url = maven_central_url + package_name + '/' + version_number
         files = get_files(version_url)
 
+        version['files'] = []
+
         # Check for files
         if files is None:
             log.warning(f'Could not get files for {version_url}.')
             continue
-
-        version['files'] = []
 
         # Iterate through files
         for file_name, extensions in files.items():

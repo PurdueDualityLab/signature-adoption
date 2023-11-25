@@ -28,7 +28,7 @@ def packages(output_path, auth_path):
     '''
 
     # Log start of function
-    log.info("Getting packages from Docker Hub.")
+    log.info("Getting packages from PyPI.")
 
     # If there is an authentication path, add it to the environment variable
     if auth_path is not None:
@@ -62,7 +62,7 @@ def packages(output_path, auth_path):
         version = row[1]
         filename = row[2]
         python_version = row[3]
-        blake2_256_digest = row[4]
+        digest = row[4]
         upload_time = str(row[5])
         download_url = row[6]
         has_signature = row[7]
@@ -70,7 +70,7 @@ def packages(output_path, auth_path):
         file_obj = {
             'filename': filename,
             'python_version': python_version,
-            'blake2_256_digest': blake2_256_digest,
+            'blake2_256_digest': digest,
             'upload_time': upload_time,
             'download_url': download_url,
             'has_signature': has_signature
@@ -80,15 +80,15 @@ def packages(output_path, auth_path):
         if name in packages:
             # If the version is in the dictionary
             if version in packages[name]:
-                packages[name][version].append(file_obj)
+                packages[name][version][digest] = file_obj
             else:
-                packages[name][version] = [file_obj]
+                packages[name][version] = {digest: file_obj}
         else:
-            packages[name] = {version: [file_obj]}
+            packages[name] = {version: {digest: file_obj}}
 
     # Open file
     log.info(f'Opening file {output_path} for writing.')
-    with open(output_path, 'a') as f:
+    with open(output_path, 'w') as f:
         for name, versions in packages.items():
             json.dump(
                 {
