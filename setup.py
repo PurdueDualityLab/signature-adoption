@@ -18,7 +18,7 @@ setup(
     install_requires=[
         'matplotlib',
         'huggingface-hub',
-        'psycopg2',
+        'psycopg2-binary',
         'google-cloud-bigquery',
         'beautifulsoup4',
         'GitPython',
