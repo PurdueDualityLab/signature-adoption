@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 # Connect to the SQLite database
 # Replace 'your_database.db' with the actual name of your database
-conn = sqlite3.connect('your_database.db')
+conn = sqlite3.connect('adoption.db')
 cursor = conn.cursor()
 
 # SQL query to get the adoption rates by week

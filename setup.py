@@ -15,4 +15,12 @@ setup(
     author='Taylor R. Schorlemmer',
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    install_requires=[
+        'matplotlib',
+        'huggingface-hub',
+        'psycopg2',
+        'google-cloud-bigquery',
+        'beautifulsoup4',
+        'GitPython',
+    ]
 )
