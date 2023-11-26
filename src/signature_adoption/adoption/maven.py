@@ -161,7 +161,8 @@ def check_signatures(package, download_dir):
 
     # Parse package name
     package_name = package['name']
-    package_name = package_name.replace('.', '/').replace(':', '/')
+    package_name = package_name.split(':')[0].replace('.', '/') + '/' + \
+        package_name.split(':')[1]
 
     # Iterate through versions
     for version in package['versions']:
