@@ -57,7 +57,7 @@ def add(package, cursor):
                     'pgp',
                     file['has_signature'],
                     raw,
-                    parse_pgp(file['signature']),
+                    parse_pgp(raw),
                     file['upload_time']
                 )
             )
