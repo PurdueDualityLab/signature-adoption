@@ -51,7 +51,11 @@ def parse_pgp(signature: str) -> str:
         return SignatureStatus.NO_PUB.name
     if 'bad signature' in signature or 'errsig' in signature or 'ambiguous' in signature:
         return SignatureStatus.BAD_SIG.name
-    if 'not a detached signature' in signature:
+    if 'not a detached signature' in signature or 'general error' in signature:
+        return SignatureStatus.BAD_SIG.name
+    if 'time conflict' in signature or 'bad mpi value' in signature:
+        return SignatureStatus.BAD_SIG.name
+    if 'fatal error' in signature or 'segmentation fault' in signature:
         return SignatureStatus.BAD_SIG.name
     if 'expired signature' in signature:
         return SignatureStatus.EXP_SIG.name
@@ -74,4 +78,11 @@ def parse_gcs(signature: str) -> str:
     returns: the status of the signature.
     '''
 
-    return SignatureStatus.NONE.name
+    if 'NO_PUBKEY' in signature:
+        return SignatureStatus.NO_PUB.name
+    if 'ERRSIG' in signature or 'bad signature' in signature:
+        return SignatureStatus.BAD_SIG.name
+    if '' == signature:
+        return SignatureStatus.NO_SIG.name
+    print(signature)
+    return SignatureStatus.OTHER.name
