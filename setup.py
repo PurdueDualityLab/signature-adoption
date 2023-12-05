@@ -22,5 +22,6 @@ setup(
         'google-cloud-bigquery',
         'beautifulsoup4',
         'GitPython',
+        'json2latex'
     ]
 )
