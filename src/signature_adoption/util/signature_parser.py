@@ -40,11 +40,13 @@ def parse_pgp(signature: str) -> str:
     if signature is None:
         return SignatureStatus.NO_SIG.name
 
-    signature = signature.lower()
+    signature = signature.lower().strip()
     if 'revoked' in signature:
         return SignatureStatus.REV_PUB.name
     if 'invalid public key algorithm' in signature:
         return SignatureStatus.BAD_PUB.name
+    if 'expired signature' in signature:
+        return SignatureStatus.EXP_SIG.name
     if 'key expired' in signature or 'keyexpired' in signature or 'key has expired' in signature:
         return SignatureStatus.EXP_PUB.name
     if 'no public key' in signature or 'no_pubkey' in signature:
@@ -57,8 +59,8 @@ def parse_pgp(signature: str) -> str:
         return SignatureStatus.BAD_SIG.name
     if 'fatal error' in signature or 'segmentation fault' in signature:
         return SignatureStatus.BAD_SIG.name
-    if 'expired signature' in signature:
-        return SignatureStatus.EXP_SIG.name
+    if 'unknown system error' in signature:
+        return SignatureStatus.BAD_SIG.name
     if 'wrong key usage' in signature:
         return SignatureStatus.BAD_PUB.name
     if 'good signature' in signature or 'goodsig' in signature:
