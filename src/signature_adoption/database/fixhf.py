@@ -8,7 +8,7 @@ import sqlite3
 import requests
 from bs4 import BeautifulSoup
 
-conn = sqlite3.connect('data/adoption_copy.db')
+conn = sqlite3.connect('data/adoption.db')
 cursor = conn.cursor()
 
 # SQL query to get the adoption rates by week
