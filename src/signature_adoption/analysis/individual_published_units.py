@@ -2,7 +2,6 @@ import sqlite3
 import matplotlib.pyplot as plt
 
 # Connect to the SQLite database
-# Replace 'your_database.db' with the actual name of your database
 conn = sqlite3.connect('data/adoption.db')
 cursor = conn.cursor()
 
