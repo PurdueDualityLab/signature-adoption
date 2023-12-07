@@ -9,7 +9,7 @@ cursor = conn.cursor()
 # SQL query to get the adoption rates by week
 query = '''
     SELECT p.registry,
-           strftime('%Y-%m', v.date) AS month_start, 
+           strftime('%Y-%m', v.date) AS month_start,
            COUNT(u.id) AS total_units,
            SUM(u.has_sig) AS signed_units
     FROM versions v
@@ -30,22 +30,22 @@ conn.close()
 
 # Extract data for plotting
 data = {
-    "docker": 
+    "docker":
     {
         "months": [],
         "adoption_rates": []
     },
-    "pypi": 
+    "pypi":
     {
         "months": [],
         "adoption_rates": []
     },
-    "maven": 
+    "maven":
     {
         "months": [],
         "adoption_rates": []
     },
-    "huggingface": 
+    "huggingface":
     {
         "months": [],
         "adoption_rates": []
@@ -61,10 +61,14 @@ for registry, month_start, total_units, signed_units in results:
 
 
 # Plot the adoption rates over time
-plt.plot(data['maven']['months'], data['maven']['adoption_rates'], marker='o', linestyle='-', label='Maven')
-plt.plot(data['pypi']['months'], data['pypi']['adoption_rates'], marker='o', linestyle='-', label='PyPI')
-plt.plot(data['docker']['months'], data['docker']['adoption_rates'], marker='o', linestyle='-', label='Docker Hub')
-plt.plot(data['huggingface']['months'], data['huggingface']['adoption_rates'], marker='o', linestyle='-', label='HuggingFace')
+plt.plot(data['maven']['months'], data['maven']['adoption_rates'],
+         marker='o', linestyle='-', label='Maven')
+plt.plot(data['pypi']['months'], data['pypi']['adoption_rates'],
+         marker='o', linestyle='-', label='PyPI')
+plt.plot(data['docker']['months'], data['docker']['adoption_rates'],
+         marker='o', linestyle='-', label='Docker Hub')
+plt.plot(data['huggingface']['months'], data['huggingface']
+         ['adoption_rates'], marker='o', linestyle='-', label='HuggingFace')
 plt.xlabel('Month')
 plt.ylabel('Signature Quantity (%)')
 plt.title('Quantity of Signatures Over Time')
@@ -72,5 +76,3 @@ plt.xticks(data['maven']['months'][::4], rotation=45)
 plt.tight_layout()
 plt.legend()
 plt.show()
-
-
