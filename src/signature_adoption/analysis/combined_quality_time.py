@@ -78,6 +78,7 @@ plt.plot(data['docker']['months'], data['docker']['adoption_rates'],
          marker='o', linestyle='-', label='Docker Hub')
 plt.plot(data['huggingface']['months'], data['huggingface']
          ['adoption_rates'], marker='o', linestyle='-', label='HuggingFace')
+plt.axvline(x='2023-03', color='k', linestyle='--', label='PyPI PGP De-emphasis')
 plt.xlabel('Month')
 plt.ylabel('Signature Quality (% Good Signatures)')
 plt.title('Quality of Signatures Over Time')

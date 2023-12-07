@@ -59,7 +59,7 @@ def add(package, cursor):
                 'dct',
                 signature is not None,
                 json.dumps(signature),
-                'GOOD' if signature else 'NONE',
+                'GOOD' if signature else 'NO_SIG',
                 version['published_at']
             )
         )
