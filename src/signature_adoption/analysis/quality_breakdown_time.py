@@ -96,93 +96,49 @@ data = {
 for registry, month_start, total_signed, total_good, total_no_sig, total_bad_sig, total_exp_sig, total_exp_pub, total_no_pub, total_rev_pub, total_bad_pub in results:
     denom = total_signed - total_good
     data[registry]['months'].append(month_start)
-    data[registry]['BAD_SIG'].append(total_bad_sig / denom * 100 if denom != 0 else 0)
-    data[registry]['EXP_SIG'].append(total_exp_sig / denom * 100 if denom != 0 else 0)
-    data[registry]['EXP_PUB'].append(total_exp_pub / denom * 100 if denom != 0 else 0)
-    data[registry]['NO_PUB'].append(total_no_pub / denom * 100 if denom != 0 else 0)
-    data[registry]['REV_PUB'].append(total_rev_pub / denom * 100 if denom != 0 else 0)
-    data[registry]['BAD_PUB'].append(total_bad_pub / denom * 100 if denom != 0 else 0)
+    data[registry]['BAD_SIG'].append(
+        total_bad_sig / denom * 100 if denom != 0 else 0)
+    data[registry]['EXP_SIG'].append(
+        total_exp_sig / denom * 100 if denom != 0 else 0)
+    data[registry]['EXP_PUB'].append(
+        total_exp_pub / denom * 100 if denom != 0 else 0)
+    data[registry]['NO_PUB'].append(
+        total_no_pub / denom * 100 if denom != 0 else 0)
+    data[registry]['REV_PUB'].append(
+        total_rev_pub / denom * 100 if denom != 0 else 0)
+    data[registry]['BAD_PUB'].append(
+        total_bad_pub / denom * 100 if denom != 0 else 0)
 
 # Plot for maven
-plt.plot(data['maven']['months'], data['maven']['BAD_SIG'],
-         marker='o', linestyle='-', label='Bad Signature')
-plt.plot(data['maven']['months'], data['maven']['EXP_SIG'],
-         marker='o', linestyle='-', label='Expired Signature')
-plt.plot(data['maven']['months'], data['maven']['EXP_PUB'],
-         marker='o', linestyle='-', label='Expired Public Key')
-plt.plot(data['maven']['months'], data['maven']['NO_PUB'],
-         marker='o', linestyle='-', label='No Public Key')
-plt.plot(data['maven']['months'], data['maven']['REV_PUB'],
-         marker='o', linestyle='-', label='Revoked Public Key')
-plt.plot(data['maven']['months'], data['maven']['BAD_PUB'],
-         marker='o', linestyle='-', label='Bad Public Key')
-plt.xlabel('Month')
-plt.ylabel('Percent of Signatures')
-plt.title('Maven Failure Modes Over Time')
-plt.xticks(data['maven']['months'][::4], rotation=45)
-plt.tight_layout()
-plt.legend()
-plt.show()
 
-# Plot for pypi
-plt.plot(data['pypi']['months'], data['pypi']['BAD_SIG'],
-         marker='o', linestyle='-', label='Bad Signature')
-plt.plot(data['pypi']['months'], data['pypi']['EXP_SIG'],
-         marker='o', linestyle='-', label='Expired Signature')
-plt.plot(data['pypi']['months'], data['pypi']['EXP_PUB'],
-         marker='o', linestyle='-', label='Expired Public Key')
-plt.plot(data['pypi']['months'], data['pypi']['NO_PUB'],
-         marker='o', linestyle='-', label='No Public Key')
-plt.plot(data['pypi']['months'], data['pypi']['REV_PUB'],
-         marker='o', linestyle='-', label='Revoked Public Key')
-plt.plot(data['pypi']['months'], data['pypi']['BAD_PUB'],
-         marker='o', linestyle='-', label='Bad Public Key')
-plt.xlabel('Month')
-plt.ylabel('Percent of Signatures')
-plt.title('pypi Failure Modes Over Time')
-plt.xticks(data['pypi']['months'][::4], rotation=45)
-plt.tight_layout()
-plt.legend()
-plt.show()
-
-# Plot for docker
-plt.plot(data['docker']['months'], data['docker']['BAD_SIG'],
-         marker='o', linestyle='-', label='Bad Signature')
-plt.plot(data['docker']['months'], data['docker']['EXP_SIG'],
-         marker='o', linestyle='-', label='Expired Signature')
-plt.plot(data['docker']['months'], data['docker']['EXP_PUB'],
-         marker='o', linestyle='-', label='Expired Public Key')
-plt.plot(data['docker']['months'], data['docker']['NO_PUB'],
-         marker='o', linestyle='-', label='No Public Key')
-plt.plot(data['docker']['months'], data['docker']['REV_PUB'],
-         marker='o', linestyle='-', label='Revoked Public Key')
-plt.plot(data['docker']['months'], data['docker']['BAD_PUB'],
-         marker='o', linestyle='-', label='Bad Public Key')
-plt.xlabel('Month')
-plt.ylabel('Percent of Signatures')
-plt.title('docker Failure Modes Over Time')
-plt.xticks(data['docker']['months'][::4], rotation=45)
-plt.tight_layout()
-plt.legend()
-plt.show()
-
-# Plot for huggingface
-plt.plot(data['huggingface']['months'], data['huggingface']['BAD_SIG'],
-         marker='o', linestyle='-', label='Bad Signature')
-plt.plot(data['huggingface']['months'], data['huggingface']['EXP_SIG'],
-         marker='o', linestyle='-', label='Expired Signature')
-plt.plot(data['huggingface']['months'], data['huggingface']['EXP_PUB'],
-         marker='o', linestyle='-', label='Expired Public Key')
-plt.plot(data['huggingface']['months'], data['huggingface']['NO_PUB'],
-         marker='o', linestyle='-', label='No Public Key')
-plt.plot(data['huggingface']['months'], data['huggingface']['REV_PUB'],
-         marker='o', linestyle='-', label='Revoked Public Key')
-plt.plot(data['huggingface']['months'], data['huggingface']['BAD_PUB'],
-         marker='o', linestyle='-', label='Bad Public Key')
-plt.xlabel('Month')
-plt.ylabel('Percent of Signatures')
-plt.title('huggingface Failure Modes Over Time')
-plt.xticks(data['huggingface']['months'][::4], rotation=45)
-plt.tight_layout()
-plt.legend()
-plt.show()
+for key in data:
+    title = key.title()
+    if key == 'docker':
+        title = 'Docker Hub'
+    if key == 'huggingface':
+        title = 'HuggingFace'
+    if key == 'pypi':
+        title = 'PyPI'
+    if key == 'maven':
+        title = 'Maven Central'
+    plt.plot(data[key]['months'], data[key]['BAD_SIG'],
+             linewidth=2, linestyle='-', label='Bad Signature')
+    plt.plot(data[key]['months'], data[key]['EXP_SIG'],
+             linewidth=2, linestyle='-', label='Expired Signature')
+    plt.plot(data[key]['months'], data[key]['EXP_PUB'],
+             linewidth=2, linestyle='-', label='Expired Public Key')
+    plt.plot(data[key]['months'], data[key]['NO_PUB'],
+             linewidth=2, linestyle='-', label='No Public Key')
+    plt.plot(data[key]['months'], data[key]['REV_PUB'],
+             linewidth=2, linestyle='-', label='Revoked Public Key')
+    plt.plot(data[key]['months'], data[key]['BAD_PUB'],
+             linewidth=2, linestyle='-', label='Bad Public Key')
+    plt.xlabel('Month', fontsize=15)
+    plt.ylabel('Percent of Signatures', fontsize=15)
+    plt.title(f'{title} Failure Modes Over Time', fontsize=19)
+    plt.xticks(data[key]['months'][::6], rotation=45, fontsize=11)
+    plt.yticks(fontsize=11)
+    plt.tight_layout()
+    plt.legend(fontsize=11)
+    plt.savefig(f'data/results/failures_{key}.png')
+    plt.clf()

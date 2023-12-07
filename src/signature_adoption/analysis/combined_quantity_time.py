@@ -62,17 +62,20 @@ for registry, month_start, total_units, signed_units in results:
 
 # Plot the adoption rates over time
 plt.plot(data['maven']['months'], data['maven']['adoption_rates'],
-         marker='o', linestyle='-', label='Maven')
+         linestyle=':', label='Maven Central', linewidth=2)
 plt.plot(data['docker']['months'], data['docker']['adoption_rates'],
-         marker='o', linestyle='-', label='Docker Hub')
-plt.plot(data['huggingface']['months'], data['huggingface']
-         ['adoption_rates'], marker='o', linestyle='-', label='HuggingFace')
+         linestyle='-.', label='Docker Hub', linewidth=2)
+plt.plot(data['huggingface']['months'], data['huggingface']['adoption_rates'],
+         linestyle='--', label='HuggingFace', linewidth=2)
 plt.plot(data['pypi']['months'], data['pypi']['adoption_rates'],
-         marker='o', linestyle='-', label='PyPI')
-plt.xlabel('Quarter')
-plt.ylabel('Signature Quantity (%)')
-plt.title('Quantity of Signatures Over Time')
-plt.xticks(data['maven']['months'][::6], rotation=45)
+         linestyle='-', label='PyPI', linewidth=2)
+plt.axvline(x='2018-03', color='k', linestyle='--',
+            label='PyPI PGP De-emphasis')
+plt.xlabel('Quarter', fontsize=15)
+plt.ylabel('Signature Quantity (%)', fontsize=15)
+plt.title('Quantity of Signatures Over Time', fontsize=19)
+plt.xticks(data['maven']['months'][::6], rotation=45, fontsize=11)
+plt.yticks(fontsize=11)
 plt.tight_layout()
-plt.legend()
-plt.savefig('data/results/combined_quantity_time.png')
+plt.legend(fontsize=11)
+plt.savefig('data/results/combined_quantity.png')
