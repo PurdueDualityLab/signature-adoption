@@ -1,11 +1,10 @@
 import sqlite3
 import json2latex
-import json
 from ..util.number_things import human_format, pc_str
 
 # Connect to the SQLite database
 # Replace 'your_database.db' with the actual name of your database
-output = 'data/results/data.tex'
+output = 'data/results/data_1yr.tex'
 result = {}
 conn = sqlite3.connect('data/adoption.db')
 cursor = conn.cursor()
@@ -17,6 +16,7 @@ def unit_count():
         SELECT p.registry, COUNT(*) as count
         FROM units u
         JOIN packages p ON u.package_id = p.id
+        WHERE u.date between '2022-10-01' and '2023-09-30'
         GROUP BY p.registry
     '''
 
@@ -41,6 +41,7 @@ def version_count():
         SELECT p.registry, COUNT(*) as count
         FROM versions v
         JOIN packages p ON v.package_id = p.id
+        WHERE v.date between '2022-10-01' and '2023-09-30'
         GROUP BY p.registry
     '''
 
@@ -82,6 +83,7 @@ def sig_statuses():
         SELECT p.registry, u.sig_status, COUNT(*) as count
         FROM units u
         JOIN packages p ON u.package_id = p.id
+        WHERE u.date between '2022-10-01' and '2023-09-30'
         GROUP BY p.registry, u.sig_status
     '''
 
@@ -143,4 +145,4 @@ sig_statuses()
 # print(json.dumps(result, indent=4))
 
 with open(output, 'w') as f:
-    json2latex.dump('data', result, f)
+    json2latex.dump('datayr', result, f)
