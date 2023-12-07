@@ -71,18 +71,19 @@ for registry, month_start, total_signed, total_good in results:
 
 # Plot the adoption rates over time
 plt.plot(data['maven']['months'], data['maven']['adoption_rates'],
-         marker='o', linestyle='-', label='Maven')
-plt.plot(data['pypi']['months'], data['pypi']['adoption_rates'],
-         marker='o', linestyle='-', label='PyPI')
+         linestyle=':', label='Maven Central', linewidth=2)
 plt.plot(data['docker']['months'], data['docker']['adoption_rates'],
-         marker='o', linestyle='-', label='Docker Hub')
-plt.plot(data['huggingface']['months'], data['huggingface']
-         ['adoption_rates'], marker='o', linestyle='-', label='HuggingFace')
-plt.axvline(x='2023-03', color='k', linestyle='--', label='PyPI PGP De-emphasis')
-plt.xlabel('Month')
-plt.ylabel('Signature Quality (% Good Signatures)')
-plt.title('Quality of Signatures Over Time')
-plt.xticks(data['maven']['months'][::4], rotation=45)
+         linestyle='-.', label='Docker Hub', linewidth=2)
+plt.plot(data['huggingface']['months'], data['huggingface']['adoption_rates'],
+         linestyle='--', label='HuggingFace', linewidth=2)
+plt.plot(data['pypi']['months'], data['pypi']['adoption_rates'],
+         linestyle='-', label='PyPI', linewidth=2)
+plt.axvline(x='2018-03', color='k', linestyle='--', label='PyPI PGP De-emphasis')
+plt.xlabel('Month', fontsize=15)
+plt.ylabel('Signature Quality (% Good Signatures)', fontsize=15)
+plt.title('Quality of Signatures Over Time', fontsize=19)
+plt.xticks(data['maven']['months'][::6], rotation=45, fontsize=11)
+plt.yticks(fontsize=11)
 plt.tight_layout()
-plt.legend()
-plt.show()
+plt.legend(fontsize=11)
+plt.savefig('data/results/combined_quality.png')
