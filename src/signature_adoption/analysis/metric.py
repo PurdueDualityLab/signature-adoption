@@ -1,5 +1,6 @@
 import sqlite3
-import matplotlib.pyplot as plt
+import json2latex
+from ..util.number_things import pc_str
 
 # Connect to the SQLite database
 # Replace 'your_database.db' with the actual name of your database
@@ -68,9 +69,30 @@ cursor.execute(query)
 # Fetch the results
 results2 = cursor.fetchall()
 
+# Close the database connection
+conn.close()
+
 print('Registry : chance after first | normal chance')
 for x in range(0, len(results)):
     print(f'{results[x][0]}: {results[x][1]} | {results2[x][3]}')
 
-# Close the database connection
-conn.close()
+data = {}
+
+for registry, metric in results:
+    if registry not in data:
+        data[registry] = {}
+    data[registry]['metric'] = metric
+    data[registry]['metric_p'] = '{:.2f}%'.format(100 * metric)
+
+
+for registry, total, signed, chance in results2:
+    if registry not in data:
+        data[registry] = {}
+    data[registry]['total'] = total
+    data[registry]['signed'] = signed
+    data[registry]['chance_p'] = '{:.2f}%'.format(100 * chance)
+
+output = 'data/results/metric.tex'
+with open(output, 'w') as f:
+    json2latex.dump('metric', data, f)
+
