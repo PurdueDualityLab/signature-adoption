@@ -16,7 +16,6 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=[
-        'wheel',
         'matplotlib',
         'huggingface-hub',
         'psycopg2-binary',
