@@ -13,6 +13,8 @@ THIS README IS NOT UP TO DATE
     1.  [Get Packages](#get-packages)
     2.  [Filter Packages](#filter-packages)
     3.  [Check Adoption](#check-adoption)
+    4.  [Create Database](#create-database)
+    5.  [Analysis](#analysis)
 
 # Overview
 Tools for verifying signatures on PyPI, Docker Hub, Maven Central, and Hugging Face.
@@ -23,6 +25,8 @@ The order of operations for these scripts are as follows:
 1. Collect a list of all packages from a given registry
 2. Apply filters to that list of packages
 3. On the remaining packages, check the adoption of signatures
+4. Move the adoption data into a unified database.
+5. Perform analysis on the database.
 
 # Directory Structure
 ```bash
@@ -81,11 +85,15 @@ See your [Hugging Face](https://huggingface.co/settings/keys) account settings f
 
 ## Python
 The scripts for this project are written in Python.
-The [requirements.txt](requirements.txt) can be used to create a Python virtual environment with all necessary dependencies in _bash_ using: 
+The [setup.py](setup.py) turns this project into an installable Python package.
+Using the following command from the base project directory, you can add this package to a Python environment.
 ```bash
-python -m venv env
-source env/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install .
+```
+
+After installing this package, it can be interfaced with other Python scripts, or referenced directly from the command line using:
+```bash
+python -m signature-adoption.<module>
 ```
 
 # Running
@@ -100,3 +108,11 @@ Hugging Face and PyPI have special arguments. Take a look at these by using `pyt
 
 
 ## Check Adoption
+
+
+## Create Database
+
+
+## Analysis
+
+
