@@ -53,7 +53,7 @@ def valid_path(path):
 
 
 # Function to generate path
-def gen_path(directory, file, ecosystem, replace='-eco-', create=True):
+def gen_path(directory, file, ecosystem, replace='-reg-', create=True):
     '''
     This function generates a file path given a directory, file, and ecosystem.
     It ensures the path exists, and creates directories if they do not exist

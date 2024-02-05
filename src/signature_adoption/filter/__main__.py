@@ -108,18 +108,18 @@ def parse_args():
                         dest='input_path',
                         metavar='PATH',
                         type=str,
-                        default='./data/-eco-/packages.ndjson',
+                        default='./data/-reg-/packages.ndjson',
                         help='The path to the input file. '
-                        'Defaults to ./data/-eco-/packages.ndjson. '
-                        'The -eco- will be replaced with the ecosystem name.')
+                        'Defaults to ./data/-reg-/packages.ndjson. '
+                        'The -reg- will be replaced with the ecosystem name.')
     parser.add_argument('--out-path',
                         dest='output_path',
                         metavar='PATH',
                         type=str,
-                        default='./data/-eco-/filter.ndjson',
+                        default='./data/-reg-/filter.ndjson',
                         help='The path to the output file. '
-                        'Defaults to ./data/-eco-/filter.ndjson. '
-                        'The -eco- will be replaced with the ecosystem name.')
+                        'Defaults to ./data/-reg-/filter.ndjson. '
+                        'The -reg- will be replaced with the ecosystem name.')
     parser.add_argument('--log-path',
                         dest='log',
                         metavar='FILE',
