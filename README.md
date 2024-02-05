@@ -90,29 +90,41 @@ Using the following command from the base project directory, you can add this pa
 ```bash
 python -m pip install .
 ```
+Note that the above installation will provide an error message if the wheel package is not installed to the Python environment before installing the signature adoption package.
 
 After installing this package, it can be interfaced with other Python scripts, or referenced directly from the command line using:
 ```bash
-python -m signature-adoption.<module>
+python -m signature_adoption.<module>
 ```
 
 # Running
 
 ## Get Packages
 Before checking for signature adoption in each registry, we need to get a list of all packages for each registry. 
-For PyPI, NPM, Docker Hub, and Maven Central, we can run the [packages.py](src/packages.py) script to generate a list of packages and versions from each registry.
-
-Hugging Face and PyPI have special arguments. Take a look at these by using `python src/packages.py huggingface -h` and `python src/packages.py huggingface -h` respectively.
+```bash
+python -m signature_adoption.packages <registry>
+```
+Hugging Face and PyPI have special arguments. Take a look at these by using `python -m signature_adoption.packages huggingface -h` and `python -m signature_adoption.packages pypi -h` respectively.
 
 ## Filter Packages
-
+```bash
+python -m signature_adoption.filter <registry>
+```
 
 ## Check Adoption
+```bash
+python -m signature_adoption.adoption <registry>
+```
 
 
 ## Create Database
-
+```bash
+python -m signature_adoption.database <registry>
+```
 
 ## Analysis
+```bash
+python -m signature_adoption.analysis <type>
+```
 
 
