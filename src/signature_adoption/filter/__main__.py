@@ -69,7 +69,8 @@ def maven(args):
         output_path=args.output_path,
         random_select=args.random_select,
         min_versions=args.min_versions,
-        min_dependants=args.min_dependants
+        min_dependants=args.min_dependants,
+        min_date=args.min_date
     )
 
 
@@ -216,6 +217,14 @@ def parse_args():
                               default=1,
                               help='The minimum number of dependants. '
                               'Defaults to 1.')
+    maven_parser.add_argument('--min-date',
+                              dest='min_date',
+                              metavar='YYYY-MM-DD',
+                              type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
+                              default=datetime(2015, 1, 1),
+                              help='The minimum date of the package and its '
+                              'versions. In the format YYYY-MM-DD. '
+                              'Defaults to 2015-01-01.')
 
     # PyPI subparser
     pypi_parser = subparsers.add_parser(

@@ -1,6 +1,7 @@
 *.log
 *.txt
 *.json
+*.ndjson
 *.csv
 *.sub
 *.out
