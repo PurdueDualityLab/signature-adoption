@@ -73,6 +73,12 @@ def filter(input_path,
                 >= min_date
             ]
 
+            # Update the versions count and check if it's still greater than
+            # or equal to min_versions
+            package['versions_count'] = len(package['versions'])
+            if package['versions_count'] < min_versions:
+                continue
+
             # Add the package to the list
             selected.append(package)
 

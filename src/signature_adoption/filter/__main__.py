@@ -86,8 +86,21 @@ def pypi(args):
         input_path=args.input_path,
         output_path=args.output_path,
         random_select=args.random_select,
-        min_versions=args.min_versions
+        min_versions=args.min_versions,
+        min_date=args.min_date
     )
+
+
+def date_argument(s: str) -> datetime:
+    '''
+    This function parses a date string in the format YYYY-MM-DD.
+
+    s: the date string to parse
+
+    returns: the parsed date as a datetime object
+    '''
+
+    return datetime.strptime(s, '%Y-%m-%d')
 
 
 # Function to parse arguments
@@ -220,7 +233,7 @@ def parse_args():
     maven_parser.add_argument('--min-date',
                               dest='min_date',
                               metavar='YYYY-MM-DD',
-                              type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
+                              type=date_argument,
                               default=datetime(2015, 1, 1),
                               help='The minimum date of the package and its '
                               'versions. In the format YYYY-MM-DD. '
@@ -245,6 +258,14 @@ def parse_args():
                              default=1,
                              help='The minimum number of versions. '
                              'Defaults to 1.')
+    pypi_parser.add_argument('--min-date',
+                             dest='min_date',
+                             metavar='YYYY-MM-DD',
+                             type=date_argument,
+                             default=datetime(2015, 1, 1),
+                             help='The minimum date of the package and its '
+                             'versions. In the format YYYY-MM-DD. '
+                             'Defaults to 2015-01-01.')
 
     args = parser.parse_args()
 
