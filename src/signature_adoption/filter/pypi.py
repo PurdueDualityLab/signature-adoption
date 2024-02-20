@@ -20,7 +20,7 @@ def filter(input_path,
            output_path,
            random_select=-1,
            min_versions=1,
-           min_date=datetime(2015, 1, 1)):
+           min_date=None):
     '''
     This function filters PyPI packages.
 
@@ -28,7 +28,7 @@ def filter(input_path,
     output_path: the path to the output file.
     random_select: the number of packages to randomly select. If -1, all.
     min_versions: the minimum number of versions.
-    min_date: the minimum date of the package.
+    min_date: the minimum date of the package. If None, no minimum date.
     '''
 
     # Initialize the list of packages
@@ -51,9 +51,11 @@ def filter(input_path,
             if package['num_versions'] < min_versions:
                 continue
 
-            # Remove all files uploaded before min_date
-            for version_name, version in package['versions'].items():
-                try:
+            # Check if we have a min_date, if so filter the versions
+            if min_date is not None:
+
+                # Remove all files uploaded before min_date
+                for version_name, version in package['versions'].items():
                     package['versions'][version_name] = {
                         file_hash: file for file_hash, file
                         in version.items()
@@ -64,23 +66,19 @@ def filter(input_path,
                             '%Y-%m-%d %H:%M:%S'
                         ) >= min_date
                     }
-                except ValueError:
-                    for file in version.values():
-                        print(file['upload_time'])
-                    exit()
 
-            # Remove all empty versions
-            package['versions'] = {
-                version_name: version for version_name, version
-                in package['versions'].items()
-                if version
-            }
+                # Remove all empty versions
+                package['versions'] = {
+                    version_name: version for version_name, version
+                    in package['versions'].items()
+                    if version
+                }
 
-            # update the number of versions and check if the package still has
-            # enough versions
-            package['num_versions'] = len(package['versions'])
-            if package['num_versions'] < min_versions:
-                continue
+                # update the number of versions and check if the package still
+                # has enough versions
+                package['num_versions'] = len(package['versions'])
+                if package['num_versions'] < min_versions:
+                    continue
 
             # Add the package to the list
             selected.append(package)

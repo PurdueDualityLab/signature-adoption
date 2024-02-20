@@ -21,7 +21,7 @@ def filter(input_path,
            random_select=-1,
            min_versions=1,
            min_dependants=0,
-           min_date=datetime(2015, 1, 1)):
+           min_date=None):
     '''
     This function filters Maven Central packages.
 
@@ -30,7 +30,7 @@ def filter(input_path,
     random_select: the number of packages to randomly select. If -1, all.
     min_versions: the minimum number of versions.
     min_dependants: the minimum number of dependants.
-    min_date: the minimum date of the package.
+    min_date: the minimum date of the package. If None, no minimum date.
     '''
 
     # Initialize the list of packages
@@ -54,30 +54,33 @@ def filter(input_path,
                     package['versions_count'] < min_versions:
                 continue
 
-            # Cont if latest release date is less than min_date
-            latest_release_date = datetime.strptime(
-                package['latest_release_published_at'].split('.')[0],
-                '%Y-%m-%d %H:%M:%S'
-            )
-            if latest_release_date < min_date:
-                continue
+            # Check if we have a min_date, if so filter the versions
+            if min_date is not None:
 
-            # Remove all versions that are less than min_date
-            versions = package['versions']
-            package['versions'] = [
-                version for version in versions if
-                datetime.strptime(
-                    version['published_at'].split('.')[0],
+                # Cont if latest release date is less than min_date
+                latest_release_date = datetime.strptime(
+                    package['latest_release_published_at'].split('.')[0],
                     '%Y-%m-%d %H:%M:%S'
                 )
-                >= min_date
-            ]
+                if latest_release_date < min_date:
+                    continue
 
-            # Update the versions count and check if it's still greater than
-            # or equal to min_versions
-            package['versions_count'] = len(package['versions'])
-            if package['versions_count'] < min_versions:
-                continue
+                # Remove all versions that are less than min_date
+                versions = package['versions']
+                package['versions'] = [
+                    version for version in versions if
+                    datetime.strptime(
+                        version['published_at'].split('.')[0],
+                        '%Y-%m-%d %H:%M:%S'
+                    )
+                    >= min_date
+                ]
+
+                # Update the versions count and check if it's still greater
+                # than or equal to min_versions
+                package['versions_count'] = len(package['versions'])
+                if package['versions_count'] < min_versions:
+                    continue
 
             # Add the package to the list
             selected.append(package)

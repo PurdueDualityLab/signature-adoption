@@ -234,10 +234,10 @@ def parse_args():
                               dest='min_date',
                               metavar='YYYY-MM-DD',
                               type=date_argument,
-                              default=datetime(2015, 1, 1),
+                              default=None,
                               help='The minimum date of the package and its '
                               'versions. In the format YYYY-MM-DD. '
-                              'Defaults to 2015-01-01.')
+                              'If not provided, no minimum date.')
 
     # PyPI subparser
     pypi_parser = subparsers.add_parser(
@@ -262,10 +262,10 @@ def parse_args():
                              dest='min_date',
                              metavar='YYYY-MM-DD',
                              type=date_argument,
-                             default=datetime(2015, 1, 1),
+                             default=None,
                              help='The minimum date of the package and its '
                              'versions. In the format YYYY-MM-DD. '
-                             'Defaults to 2015-01-01.')
+                             'If not provided, no minimum date.')
 
     args = parser.parse_args()
 
