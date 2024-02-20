@@ -94,21 +94,21 @@ def url_construction(digest: str, filename: str) -> str:
     return url
 
 
-def adoption(input_file_path, output_file_path, download_dir, start, stop):
+def adoption(input_file_path, output_file_path, download_dir, start, stop,
+             save_sigs, save_units, only_sigs):
     '''
     This function checks the adoption of signatures for packages from
     PyPI. It takes a newline delimited JSON file and outputs a newline
     delimited JSON file with the signatures added.
 
     input_file_path: the path to the input file.
-
     output_file_path: the path to the output file.
-
     download_dir: the directory to download the files to.
-
     start: the line number to start at.
-
     stop: the line number to stop at. If -1, go to the end of the file.
+    save_sigs: whether to save the signatures.
+    save_units: whether to save the units.
+    only_sigs: whether to only get signatures.
 
     returns: None.
     '''
@@ -162,18 +162,30 @@ def adoption(input_file_path, output_file_path, download_dir, start, stop):
                             filename=filename
                         )
 
-                        # Download the file and signature
-                        dl_file = download_file(
-                            remote_file_url=url,
-                            local_file_path=local_file_path
-                        )
+                        # Download the signature
                         dl_sign = download_file(
                             remote_file_url=url+'.asc',
                             local_file_path=local_file_path+'.asc'
                         )
 
+                        # Check if the signature was downloaded
+                        if not dl_sign:
+                            log.warning(
+                                f'Missing sig, skipping ver.: {version_name}'
+                            )
+
+                        # If we are only getting signatures, continue
+                        if only_sigs:
+                            continue
+
+                        # Download the file
+                        dl_file = download_file(
+                            remote_file_url=url,
+                            local_file_path=local_file_path
+                        )
+
                         # Check if the file was downloaded
-                        if not dl_file or not dl_sign:
+                        if not dl_file:
                             log.warning(
                                 f'Missing file, skipping ver.: {version_name}'
                             )
@@ -190,9 +202,15 @@ def adoption(input_file_path, output_file_path, download_dir, start, stop):
                             'stderr': stderr
                         }
 
-                        # Remove the files
-                        subprocess.run(['rm', '-r', local_file_path])
-                        subprocess.run(['rm', '-r', local_file_path+'.asc'])
+                        # Remove the files if not saving
+                        if not save_units:
+                            subprocess.run(['rm',
+                                            '-r',
+                                            local_file_path])
+                        if not save_sigs:
+                            subprocess.run(['rm',
+                                            '-r',
+                                            local_file_path+'.asc'])
 
             # Write package to output file
             log.debug(f'Writing package {indx} to file.')

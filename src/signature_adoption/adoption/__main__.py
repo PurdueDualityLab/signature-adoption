@@ -52,6 +52,9 @@ def pypi(args):
         download_dir=args.download_dir,
         start=args.start,
         stop=args.stop,
+        save_sigs=args.save_sigs,
+        save_units=args.save_units,
+        only_sigs=args.only_sigs,
     )
 
 
@@ -86,6 +89,9 @@ def maven(args):
         download_dir=args.download_dir,
         start=args.start,
         stop=args.stop,
+        save_sigs=args.save_sigs,
+        save_units=args.save_units,
+        only_sigs=args.only_sigs,
     )
 
 
@@ -181,6 +187,33 @@ def parse_args():
         help='The path to the directory to download files to. Defaults to '
         '<./data/pypi/downloads/>.'
     )
+    pypi_parser.add_argument(
+        '--save-sigs',
+        '-s',
+        dest='save_sigs',
+        action='store_true',
+        help='If this flag is set, the downloaded signatures will not be '
+        'deleted. They will be saved in the download directory. Defaults to '
+        'False.',
+    )
+    pypi_parser.add_argument(
+        '--save-units',
+        '-u',
+        dest='save_units',
+        action='store_true',
+        help='If this flag is set, the downloaded package files will not be '
+        'deleted. They will be saved in the download directory. Defaults to '
+        'False.',
+    )
+    pypi_parser.add_argument(
+        '--only-sigs',
+        '-o',
+        dest='only_sigs',
+        action='store_true',
+        help='If this flag is set, only the signatures will be downloaded. '
+        'No package files will be downloaded and therefore signatures will '
+        'not be checked. Defaults to False.',
+    )
 
     # HuggingFace subparser
     huggingface_parser = subparsers.add_parser(
@@ -203,8 +236,8 @@ def parse_args():
         '-s',
         dest='save',
         action='store_true',
-        help='If this flag is set, the downloaded files '
-        'will be saved.'
+        help='If this flag is set, the repository will not be deleted. It '
+        'will be saved in the download directory. Defaults to False.',
     )
 
     # Maven subparser
@@ -223,6 +256,33 @@ def parse_args():
         help='The path to the directory to download '
         'files to. Defaults to '
         '<./data/maven/downloads/>.'
+    )
+    maven_parser.add_argument(
+        '--save-sigs',
+        '-s',
+        dest='save_sigs',
+        action='store_true',
+        help='If this flag is set, the downloaded signatures will not be '
+        'deleted. They will be saved in the download directory. Defaults to '
+        'False.',
+    )
+    maven_parser.add_argument(
+        '--save-units',
+        '-u',
+        dest='save_units',
+        action='store_true',
+        help='If this flag is set, the downloaded package files will not be '
+        'deleted. They will be saved in the download directory. Defaults to '
+        'False.',
+    )
+    maven_parser.add_argument(
+        '--only-sigs',
+        '-o',
+        dest='only_sigs',
+        action='store_true',
+        help='If this flag is set, only the signatures will be downloaded. '
+        'No package files will be downloaded and therefore signatures will '
+        'not be checked. Defaults to False.',
     )
 
     # Parse arguments

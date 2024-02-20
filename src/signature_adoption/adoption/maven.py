@@ -46,7 +46,8 @@ def download_file(remote_file_url, local_file_path):
     return True
 
 
-def check_file(version_url, file_name, extensions, download_path):
+def check_file(version_url, file_name, extensions, download_path,
+               save_sigs, save_units, only_sigs):
     '''
     This function checks the adoption of signatures for a file from Maven
     Central.
@@ -55,6 +56,9 @@ def check_file(version_url, file_name, extensions, download_path):
     file_name: the name of the file to check.
     extensions: all of the extensions for the file.
     download_path: the path to the directory to download files to.
+    save_sigs: whether to save the signatures.
+    save_units: whether to save the units.
+    only_sigs: whether to only get signatures.
 
     returns: The results of a GPG check.
     '''
@@ -67,18 +71,26 @@ def check_file(version_url, file_name, extensions, download_path):
     if '.asc' not in extensions:
         return None, None
 
-    # Get the file and signature file
-    file_path = download_path + file_name
+    # Create the signature path
     signature_path = download_path + file_name + '.asc'
-    log.debug(f'File path: {file_path}')
     log.debug(f'Signature path: {signature_path}')
 
-    # Get the file and signature ensure files are downloaded
-    if not download_file(file_url, file_path):
-        log.warning(f'Could not download file {file_url}.')
-        return None, None
+    # Get the signature ensure file is downloaded
     if not download_file(file_url+'.asc', signature_path):
         log.warning(f'Could not download signature {file_url}.asc.')
+        return None, None
+
+    # If we are only getting signatures, return
+    if only_sigs:
+        return None, None
+
+    # Create the file path
+    file_path = download_path + file_name
+    log.debug(f'File path: {file_path}')
+
+    # Get the file ensure file is downloaded
+    if not download_file(file_url, file_path):
+        log.warning(f'Could not download file {file_url}.')
         return None, None
 
     # Run the gpg verify command
@@ -96,9 +108,11 @@ def check_file(version_url, file_name, extensions, download_path):
         ],
         capture_output=True)
 
-    # Remove the files
-    subprocess.run(['rm', '-r', file_path])
-    subprocess.run(['rm', '-r', signature_path])
+    # Remove the files if we are not saving them
+    if not save_units:
+        subprocess.run(['rm', '-r', file_path])
+    if not save_sigs:
+        subprocess.run(['rm', '-r', signature_path])
 
     return output.stdout.decode('utf-8'), output.stderr.decode('utf-8')
 
@@ -146,12 +160,15 @@ def get_files(version_url):
     return file_extensions
 
 
-def check_signatures(package, download_dir):
+def check_signatures(package, download_dir, save_sigs, save_units, only_sigs):
     '''
     This function gets the signatures for a package from Maven Central.
 
     package: the package to get the signatures for.
     download_dir: the path to the directory to download files to.
+    save_sigs: whether to save the signatures.
+    save_units: whether to save the units.
+    only_sigs: whether to only get signatures.
 
     returns: the package with the signatures added.
     '''
@@ -182,8 +199,13 @@ def check_signatures(package, download_dir):
         # Iterate through files
         for file_name, extensions in files.items():
 
-            stdout, stderr = check_file(version_url, file_name,
-                                        extensions, download_dir)
+            stdout, stderr = check_file(version_url,
+                                        file_name,
+                                        extensions,
+                                        download_dir,
+                                        save_sigs,
+                                        save_units,
+                                        only_sigs)
             version['files'].append({
                 'name': file_name,
                 'extensions': extensions,
@@ -195,7 +217,8 @@ def check_signatures(package, download_dir):
     return package
 
 
-def adoption(input_file_path, output_file_path, download_dir, start, stop):
+def adoption(input_file_path, output_file_path, download_dir, start, stop,
+             save_sigs, save_units, only_sigs):
     '''
     This function checks the adoption of signatures for packages from Maven
     Central. It takes a newline delimited JSON file and outputs a newline
@@ -206,6 +229,9 @@ def adoption(input_file_path, output_file_path, download_dir, start, stop):
     download_dir: the path to the directory to download files to.
     start: the line number to start at.
     stop: the line number to stop at. If -1, go to the end of the file.
+    save_sigs: whether to save the signatures.
+    save_units: whether to save the units.
+    only_sigs: whether to only get signatures.
 
     returns: None.
     '''
@@ -242,7 +268,13 @@ def adoption(input_file_path, output_file_path, download_dir, start, stop):
                           f'{package["name"]}')
 
             # Check signatures
-            package_and_signatures = check_signatures(package, download_dir)
+            package_and_signatures = check_signatures(
+                package,
+                download_dir,
+                save_sigs,
+                save_units,
+                only_sigs
+            )
 
             # Write to file
             log.debug('Writing to file')
