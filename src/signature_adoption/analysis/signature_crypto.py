@@ -127,20 +127,23 @@ def extract_crypto_info(output):
     created_regex = re.compile(r'created (\d+)')
     digest_regex = re.compile(r'digest algo (\d+)')
     data_regex = re.compile(r'data: \[(\d+) bits\]')
+    keyid_regex = re.compile(r'keyid: (\w+)')
 
     # Find matches in the string
     algo_match = algo_regex.search(output)
     created_match = created_regex.search(output)
     digest_match = digest_regex.search(output)
     data_match = data_regex.search(output)
+    keyid_match = keyid_regex.search(output)
 
     # Extract the matched groups
     algo = algo_match.group(1) if algo_match else None
     created = created_match.group(1) if created_match else None
     digest = digest_match.group(1) if digest_match else None
     data = data_match.group(1) if data_match else None
+    keyid = keyid_match.group(1) if keyid_match else None
 
-    return algo, created, digest, data
+    return algo, created, digest, data, keyid
 
 
 def init_db(args):
@@ -164,7 +167,8 @@ def init_db(args):
             algo INTEGER,
             created INTEGER,
             digest INTEGER,
-            data INTEGER
+            data INTEGER,
+            keyid TEXT
         )'''
     )
 
@@ -217,11 +221,12 @@ if __name__ == "__main__":
             # print(f'{output}')
 
             # find the crypto info
-            algo, created, digest, data = extract_crypto_info(output)
+            algo, created, digest, data, keyid = extract_crypto_info(output)
 
             # insert into db
             c.execute(
-                'INSERT INTO crypto (filename, algo, created, digest, data) '
-                'VALUES (?, ?, ?, ?, ?)',
-                (file, algo, created, digest, data)
+                'INSERT INTO crypto '
+                '(filename, algo, created, digest, data, keyid) '
+                'VALUES (?, ?, ?, ?, ?, ?)',
+                (file, algo, created, digest, data, keyid)
             )
