@@ -56,9 +56,11 @@ def parse_args():
         'two-sided: means are not equal.',
     )
     parser.add_argument(
-        'output',
+        '--output',
+        '-o',
         metavar='OUTPUT',
         type=Path,
+        default=None,
         help='The file to save the output to.',
     )
 
@@ -121,10 +123,25 @@ def get_sample(database, registry, start, end):
             total = dates[date]['signed'] + dates[date]['unsigned']
             percent = dates[date]['signed'] / total * 100
             dates[date]['percentage'] = percent
-            if percent > 80:
-                print(date, percent, total)
 
     return [v['percentage'] for v in dates.values()]
+
+
+def calc_effect_size(t_stat, n1, n2):
+    ''' This function calculates the effect size.
+
+    t_stat: the t-statistic.
+    n1: the number of samples in the first sample.
+    n2: the number of samples in the second sample.
+
+    returns: the effect size.
+    '''
+
+    # calculate the degrees of freedom
+    df = n1 + n2 - 2
+
+    # calculate the effect size
+    return t_stat / (df ** 0.5)
 
 
 if __name__ == "__main__":
@@ -140,12 +157,13 @@ if __name__ == "__main__":
     before = get_sample(args.database, args.registry, start, args.intervention)
     after = get_sample(args.database, args.registry, args.intervention, end)
 
-    # Plot the samples
-    plt.hist(before, bins=30, alpha=0.5, range=(0, 20), label='Before')
-    plt.hist(after, bins=30, alpha=0.5, range=(0, 20), label='After')
-    plt.legend(loc='upper right')
-    plt.tight_layout()
-    plt.savefig(args.output)
+    # Plot the samples if output is provided
+    if args.output:
+        plt.hist(before, bins=30, alpha=0.5, range=(0, 20), label='Before')
+        plt.hist(after, bins=30, alpha=0.5, range=(0, 20), label='After')
+        plt.legend(loc='upper right')
+        plt.tight_layout()
+        plt.savefig(args.output)
 
     # Print basic statistics
     print('Before')
@@ -165,3 +183,7 @@ if __name__ == "__main__":
     # print the results
     print(f't-statistic: {t_stat}')
     print(f'p-value: {p_value}')
+    print(f'effect size: {calc_effect_size(t_stat, len(before), len(after))}')
+
+    print(before)
+    print(after)
