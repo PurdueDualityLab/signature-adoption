@@ -127,7 +127,7 @@ def extract_crypto_info(output):
     created_regex = re.compile(r'created (\d+)')
     digest_regex = re.compile(r'digest algo (\d+)')
     data_regex = re.compile(r'data: \[(\d+) bits\]')
-    keyid_regex = re.compile(r'keyid: (\w+)')
+    keyid_regex = re.compile(r'keyid (\w+)')
 
     # Find matches in the string
     algo_match = algo_regex.search(output)
