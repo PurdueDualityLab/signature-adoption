@@ -21,11 +21,11 @@ SELECT
     COUNT(CASE WHEN u.sig_status = 'REV_PUB' THEN 1 END) as rev_pub,
     COUNT(CASE WHEN u.sig_status = 'BAD_PUB' THEN 1 END) as bad_pub
 FROM
-    packages p
+    units u
 JOIN
-    versions v ON p.id = v.package_id
+    versions v ON v.id = u.version_id
 JOIN
-    units u ON v.id = u.version_id
+    packages p ON p.id = v.package_id
 WHERE
     (u.has_sig = 1 OR u.sig_status = 'GOOD')
     AND u.date BETWEEN '2015-01-01' AND '2023-10-01'

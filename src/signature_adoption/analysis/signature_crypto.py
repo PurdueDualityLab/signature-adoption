@@ -128,6 +128,7 @@ def extract_crypto_info(output):
     digest_regex = re.compile(r'digest algo (\d+)')
     data_regex = re.compile(r'data: \[(\d+) bits\]')
     keyid_regex = re.compile(r'keyid (\w+)')
+    exp_regex = re.compile(r'sig expires')
 
     # Find matches in the string
     algo_match = algo_regex.search(output)
@@ -135,6 +136,7 @@ def extract_crypto_info(output):
     digest_match = digest_regex.search(output)
     data_match = data_regex.search(output)
     keyid_match = keyid_regex.search(output)
+    exp_match = exp_regex.search(output)
 
     # Extract the matched groups
     algo = algo_match.group(1) if algo_match else None
@@ -142,8 +144,9 @@ def extract_crypto_info(output):
     digest = digest_match.group(1) if digest_match else None
     data = data_match.group(1) if data_match else None
     keyid = keyid_match.group(1) if keyid_match else None
+    exp = 1 if exp_match else 0
 
-    return algo, created, digest, data, keyid
+    return algo, created, digest, data, keyid, exp
 
 
 def init_db(args):
@@ -168,7 +171,9 @@ def init_db(args):
             created INTEGER,
             digest INTEGER,
             data INTEGER,
-            keyid TEXT
+            keyid TEXT,
+            exp INTEGER,
+            raw TEXT
         )'''
     )
 
@@ -221,12 +226,12 @@ if __name__ == "__main__":
             # print(f'{output}')
 
             # find the crypto info
-            algo, created, digest, data, keyid = extract_crypto_info(output)
+            algo, created, digest, data, keyid, exp = extract_crypto_info(output)
 
             # insert into db
             c.execute(
                 'INSERT INTO crypto '
-                '(filename, algo, created, digest, data, keyid) '
-                'VALUES (?, ?, ?, ?, ?, ?)',
-                (file, algo, created, digest, data, keyid)
+                '(filename, algo, created, digest, data, keyid, exp, raw) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                (file, algo, created, digest, data, keyid, exp, output)
             )

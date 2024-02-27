@@ -184,3 +184,7 @@ if __name__ == "__main__":
     print(f't-statistic: {t_stat}')
     print(f'p-value: {p_value}')
     print(f'effect size: {calc_effect_size(t_stat, len(before), len(after))}')
+
+    print(before)
+    print(after)
+
