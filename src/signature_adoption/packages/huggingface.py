@@ -7,7 +7,6 @@ is also created.
 
 # Import statements
 import json
-import csv
 import logging as log
 from huggingface_hub.hf_api import ModelInfo, list_models
 
