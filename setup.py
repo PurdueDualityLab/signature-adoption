@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 # Setup
 setup(
-    name='signature-adoption',
+    name='sigadopt',
     version='0.1',
     description='Signature Adoption',
     author='Taylor R. Schorlemmer',
@@ -23,5 +23,10 @@ setup(
         'beautifulsoup4',
         'GitPython',
         'json2latex'
-    ]
+    ],
+    entry_points={
+        'console_scripts': [
+            'sigadopt = sigadopt.__main__:main'
+        ],
+    },
 )
