@@ -10,8 +10,6 @@ from datetime import datetime
 from sigadopt import parser
 
 # Global variables
-log = logging.getLogger(__name__)
-start_time = datetime.now()
 
 
 def main():
@@ -20,17 +18,32 @@ def main():
     registries.
     '''
 
+    # Start time
+    log = logging.getLogger(__name__)
+    start_time = datetime.now()
+
     # Parse the arguments
     args = parser.parse_args()
 
+    # Manage logger if needed
+    if args.log_level:
+        logging.root.handlers[0].setLevel(args.log_level)
+    if args.log:
+        old_handler = logging.root.handlers[0]
+        new_handler = logging.FileHandler(args.log)
+        new_handler.setLevel(old_handler.level)
+        new_handler.setFormatter(old_handler.formatter)
+        logging.root.removeHandler(old_handler)
+        logging.root.addHandler(new_handler)
+
     # Log start
     log.info('Starting...')
-    log.info(f'Finished in {datetime.now() - start_time}.')
 
-    # Call correct function
-    # args.func(args)
+    # Call correct stage
+    args.stage(args).run()
 
     # Log end
+    log.info(f'Finished in {datetime.now() - start_time}.')
     log.info('Done...')
 
 
