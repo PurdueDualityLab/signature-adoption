@@ -137,6 +137,14 @@ def add_arguments(top_parser):
         help='The path to the output database file. Defaults to '
         './data/packages.db.',
     )
+    parser.add_argument(
+        '--clean',
+        '-c',
+        dest='clean',
+        action='store_true',
+        help='Flag to clear existing data from the database before adding new '
+        'data. Defaults to False.'
+    )
 
     # Give the parser a stage class to use
     parser.set_defaults(stage=Packages)

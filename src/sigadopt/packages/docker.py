@@ -1,30 +1,25 @@
-#!/usr/bin/env python
-
-'''packages.py: This script gets the repositories and associated metadata
-for docker hub repositories. It then saves the data to a ndjson file.
+'''docker.py: This script gets the repositories and associated metadata
+for docker hub repositories.
 '''
 
 # Import statements
 import json
 import os
-import logging as log
+import logging
 import psycopg2
-
-# authorship information
-__author__ = "Taylor R. Schorlemmer"
-__email__ = "tschorle@purdue.edu"
 
 
 # Function to get the repositories and associated metadata
-def packages(output_path):
+def packages(output):
     '''
     This function gets a list of and packages and associated metadata from
     docker hub using the ecosystems database.
 
-    output_path: The path to the output file.
+    output: The path to the output file.
     '''
 
     # Log start of function
+    log = logging.getLogger(__name__)
     log.info("Getting packages from Docker Hub.")
 
     # Get database password or use default 'postgres'
@@ -57,8 +52,8 @@ def packages(output_path):
     '''
 
     # Open file
-    log.info(f'Opening file {output_path} for writing.')
-    with open(output_path, 'a') as f:
+    log.info(f'Opening file {output} for writing.')
+    with open(output, 'a') as f:
 
         # Execute query and get first package
         cur_pkgs.execute(query_pkgs)
