@@ -1,50 +1,46 @@
-#!/usr/bin/env python
-
-'''packages.py: This script gets the repositories and associated metadata
-for pypi repositories. It then saves the data to a ndjson file.
+'''
+pypi.py: This script gets the repositories and associated metadata from PyPI.
 '''
 
 # Import statements
-import json
 import os
-import logging as log
+import logging
 from google.cloud import bigquery
 
-# authorship information
-__author__ = "Taylor R. Schorlemmer"
-__email__ = "tschorle@purdue.edu"
 
-
-# Function to get the repositories and associated metadata
-def packages(output_path, auth_path):
+def packages(output_conn, auth_path=None):
     '''
     This function gets a list of and packages and associated metadata from
     pypi using the ecosystems database.
 
-    output_path: The path to the output file.
+    output_conn: The path to the output database.
     auth_path: The path to the authentication file.
 
     returns: None
     '''
 
-    # Log start of function
-    log.info("Getting packages from PyPI.")
+    # Setup logger
+    log = logging.getLogger(__name__)
 
     # If there is an authentication path, add it to the environment variable
-    if auth_path is not None:
+    if auth_path:
         log.info(f'Adding authentication path {auth_path} to environment.')
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = auth_path
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(auth_path.resolve())
+
+    # Log start of function
+    log.info("Getting packages from PyPI.")
 
     # Create the client for the bigquery database
     client = bigquery.Client()
 
     # Create the query
     query = (
-        'SELECT name, version, filename, python_version, blake2_256_digest, '
-        'upload_time, download_url, has_signature\n'
-        'FROM `bigquery-public-data.pypi.distribution_metadata`\n')
-    query_without_newlines = query.replace('\n', ' ')
-    log.info(f'Query: {query_without_newlines}')
+        '''
+            SELECT name, version, filename, blake2_256_digest, upload_time,
+            download_url, has_signature
+            FROM `bigquery-public-data.pypi.distribution_metadata`
+        '''
+    )
 
     # Run the query
     query_job = client.query(query)
@@ -52,7 +48,7 @@ def packages(output_path, auth_path):
     # Get the results
     results = query_job.result()
 
-    # Create json object
+    # Create dict for packages
     packages = {}
 
     # Loop through results
@@ -61,22 +57,20 @@ def packages(output_path, auth_path):
         name = row[0]
         version = row[1]
         filename = row[2]
-        python_version = row[3]
-        digest = row[4]
-        upload_time = str(row[5])
-        download_url = row[6]
-        has_signature = row[7]
+        digest = row[3]
+        upload_time = str(row[4])
+        download_url = row[5]
+        has_signature = row[6]
 
         file_obj = {
             'filename': filename,
-            'python_version': python_version,
-            'blake2_256_digest': digest,
+            'digest': digest,
             'upload_time': upload_time,
             'download_url': download_url,
             'has_signature': has_signature
         }
 
-        # Check if package is in json object
+        # Check if package is in dict
         if name in packages:
             # If the version is in the dictionary
             if version in packages[name]:
@@ -86,15 +80,63 @@ def packages(output_path, auth_path):
         else:
             packages[name] = {version: {digest: file_obj}}
 
-    # Open file
-    log.info(f'Opening file {output_path} for writing.')
-    with open(output_path, 'w') as f:
+    # Insert packages into output database
+    log.info('Adding packages to the output database.')
+    with output_conn:
+
+        # Create cursor
+        output_curr = output_conn.cursor()
+
+        # Iterate through packages
         for name, versions in packages.items():
-            json.dump(
-                {
-                    'name': name,
-                    'num_versions': len(versions),
-                    'versions': versions
-                },
-                f, default=str)
-            f.write('\n')
+
+            # Insert package into output database
+            output_curr.execute(
+                '''
+                    INSERT INTO packages (registry_id, name, versions_count)
+                    VALUES (?, ?, ?);
+                ''',
+                (
+                    4,               # PyPI registry_id
+                    name,            # Package name
+                    len(versions),   # Number of versions
+                )
+            )
+
+            # Get package id
+            package_id = output_curr.lastrowid
+
+            # Iterate through versions
+            for version, files in versions.items():
+
+                # Insert versions into output database
+                output_curr.execute(
+                    '''
+                        INSERT INTO versions (package_id, name)
+                        VALUES (?, ?);
+                        ''',
+                    (package_id, version)
+                )
+
+                # Get version id
+                version_id = output_curr.lastrowid
+
+                # Iterate through files
+                for digest, file in files.items():
+
+                    # Insert files into output database
+                    output_curr.execute(
+                        '''
+                            INSERT INTO artifacts (version_id, name, type,
+                                has_sig, digest, date)
+                            VALUES (?, ?, ?, ?, ?, ?);
+                            ''',
+                        (
+                            version_id,             # Version id
+                            file['filename'],       # File name
+                            'file',                 # File type
+                            file['has_signature'],  # Has signature
+                            file['digest'],         # Digest
+                            file['upload_time']     # Date
+                        )
+                    )

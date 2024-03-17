@@ -33,34 +33,29 @@ class Packages(Stage):
         '''
         This function gets the packages from Hugging Face.
         '''
-        if self.args.token is None:
-            huggingface_packages(
-                output_path=self.args.output,
-                token_path=self.args.token_path
-            )
-        else:
-            huggingface_packages(
-                output_path=self.args.output,
-                token=self.args.token
-            )
+        huggingface_packages(
+            output_conn=self.conn,
+            token_path=self.args.token_path,
+            token=self.args.token
+        )
 
     def docker(self):
         '''
         This function gets the packages from Docker Hub.
         '''
-        docker_packages(output=self.args.output)
+        docker_packages(output_conn=self.conn)
 
     def maven(self):
         '''
         This function gets the packages from Maven.
         '''
-        maven_packages(output_path=self.args.output)
+        maven_packages(output_conn=self.conn)
 
     def pypi(self):
         '''
         This function gets the packages from PyPI.
         '''
-        pypi_packages(output_path=self.args.output,
+        pypi_packages(output_conn=self.conn,
                       auth_path=self.args.auth_path)
 
     def ensure_db(self):
@@ -70,6 +65,8 @@ class Packages(Stage):
         return: The connection to the database.
         '''
 
+        self.log.info('Ensuring database is available.')
+
         # Connect to the database
         conn = None
         try:
@@ -78,13 +75,57 @@ class Packages(Stage):
             self.log.error(f'Error connecting to the database: {e}')
             exit(-1)
 
+        # Check to see if the database is actually a database
+
         # Clear existing data if requested
         if self.args.clean:
             self.log.info('Clearing existing data from database.')
             with conn:
                 cursor = conn.cursor()
+                self.log.debug('Dropping registries table.')
+                cursor.execute('DROP TABLE IF EXISTS registries;')
+                self.log.debug('Dropping packages table.')
                 cursor.execute('DROP TABLE IF EXISTS packages;')
+                self.log.debug('Dropping versions table.')
                 cursor.execute('DROP TABLE IF EXISTS versions;')
+                self.log.debug('Dropping artifacts table.')
+                cursor.execute('DROP TABLE IF EXISTS artifacts;')
+
+        # Create registry table
+        with conn:
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS registries (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    UNIQUE (name)
+                );
+                '''
+            )
+            conn.execute(
+                '''
+                INSERT OR IGNORE INTO registries (name)
+                VALUES ('Hugging Face');
+                '''
+            )
+            conn.execute(
+                '''
+                INSERT OR IGNORE INTO registries (name)
+                VALUES ('Docker Hub');
+                '''
+            )
+            conn.execute(
+                '''
+                INSERT OR IGNORE INTO registries (name)
+                VALUES ('Maven Central');
+                '''
+            )
+            conn.execute(
+                '''
+                INSERT OR IGNORE INTO registries (name)
+                VALUES ('PyPI');
+                '''
+            )
 
         # Create package table
         with conn:
@@ -93,8 +134,14 @@ class Packages(Stage):
                 CREATE TABLE IF NOT EXISTS packages (
                     id INTEGER PRIMARY KEY,
                     name TEXT NOT NULL,
-                    registry TEXT NOT NULL,
-                    UNIQUE (name, registry)
+                    registry_id INTEGER NOT NULL,
+                    versions_count INTEGER,
+                    latest_release_date TEXT,
+                    first_release_date TEXT,
+                    downloads INTEGER,
+                    downloads_period TEXT,
+                    UNIQUE (name, registry_id),
+                    FOREIGN KEY (registry_id) REFERENCES registries (id)
                 );
                 '''
             )
@@ -106,15 +153,34 @@ class Packages(Stage):
                 CREATE TABLE IF NOT EXISTS versions (
                     id INTEGER PRIMARY KEY,
                     package_id INTEGER NOT NULL,
-                    date TEXT,
                     name TEXT NOT NULL,
+                    date TEXT,
                     UNIQUE (package_id, name)
                     FOREIGN KEY (package_id) REFERENCES packages (id)
                 );
                 '''
             )
 
+        # Create artifact table
+        with conn:
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS artifacts (
+                    id INTEGER PRIMARY KEY,
+                    version_id INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    has_sig INTEGER NOT NULL,
+                    digest TEXT,
+                    date TEXT,
+                    UNIQUE (version_id, name),
+                    FOREIGN KEY (version_id) REFERENCES versions (id)
+                );
+                '''
+            )
+
         # Return the connection
+        self.log.debug('Database is available.')
         return conn
 
     def run(self):

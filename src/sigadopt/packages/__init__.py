@@ -68,6 +68,7 @@ def add_pypi_args(registry_parser):
     # Add PyPI specific arguments
     pypi_parser.add_argument(
         '--auth-path',
+        '-a',
         dest='auth_path',
         metavar='PATH',
         type=path_exists,

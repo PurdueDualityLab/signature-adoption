@@ -37,14 +37,13 @@ def main():
         logging.root.addHandler(new_handler)
 
     # Log start
-    log.info('Starting...')
+    log.info('Starting.')
 
     # Call correct stage
     args.stage(args).run()
 
     # Log end
-    log.info(f'Finished in {datetime.now() - start_time}.')
-    log.info('Done...')
+    log.info(f'Done. Finished in {datetime.now() - start_time}.')
 
 
 if __name__ == '__main__':

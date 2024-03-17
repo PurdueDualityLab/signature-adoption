@@ -1,30 +1,25 @@
-#!/usr/bin/env python
-
-'''packages.py: This script gets the repositories and associated metadata
-for maven central repositories. It then saves the data to a ndjson file.
+'''
+maven.py: This script gets the repositories and associated metadata from Maven
+Central.
 '''
 
 # Import statements
-import json
 import os
-import logging as log
+import logging
 import psycopg2
 
-# authorship information
-__author__ = "Taylor R. Schorlemmer"
-__email__ = "tschorle@purdue.edu"
 
-
-# Function to get the repositories and associated metadata
-def packages(output_path):
+def packages(output_conn):
     '''
     This function gets a list of and packages and associated metadata from
-    maven central using the ecosystems database.
+    maven central using the ecosystems database. It writes the data to a
+    database.
 
-    output_path: The path to the output file.
+    output_conn: A connection to the output database.
     '''
 
     # Log start of function
+    log = logging.getLogger(__name__)
     log.info("Getting packages from Maven Central.")
 
     # Get database password or use default 'postgres'
@@ -40,60 +35,72 @@ def packages(output_path):
     }
 
     # Connect to database
-    conn = psycopg2.connect(**db_credentials)
-    cur_pkgs = conn.cursor()
-    cur_vrsns = conn.cursor()
+    input_conn = psycopg2.connect(**db_credentials)
+    input_cursor = input_conn.cursor()
 
     # Query to get packages
     query_pkgs = '''
-        SELECT * FROM packages
+        SELECT id, name, versions_count, latest_release_published_at,
+            first_release_published_at, downloads, downloads_period
+        FROM packages
         WHERE registry_id = 22;
     '''
 
     # Query to get versions
     query_vrsns = '''
-        SELECT * FROM versions
+        SELECT number, published_at
+        FROM versions
         WHERE package_id = %s;
     '''
 
-    # Open file
-    log.info(f'Opening file {output_path} for writing.')
-    with open(output_path, 'w') as f:
+    # Get packages
+    input_cursor.execute(query_pkgs)
+    packages = input_cursor.fetchall()
 
-        # Execute query and get first package
-        cur_pkgs.execute(query_pkgs)
-        package = cur_pkgs.fetchone()
+    # Insert packages into output database
+    log.info('Inserting packages into output database.')
+    with output_conn:
 
-        # Get column names
-        p_col = [desc[0] for desc in cur_pkgs.description]
-        v_col = None
+        # Create cursor
+        output_curr = output_conn.cursor()
 
-        # Iterate through each package
-        while package:
+        # Iterate through packages
+        for p in packages:
 
-            # Jsonify package
-            json_package = dict(zip(p_col, package))
+            # Insert package into output database
+            output_curr.execute(
+                '''
+                    INSERT INTO packages (registry_id, name, versions_count,
+                        latest_release_date, first_release_date, downloads,
+                        downloads_period)
+                    VALUES (?, ?, ?, ?, ?, ?, ?);
+                ''',
+                (
+                    3,      # Maven registry_id
+                    p[1],   # Package name
+                    p[2],   # Number of versions
+                    p[3],   # Latest release date
+                    p[4],   # First release date
+                    p[5],   # Downloads
+                    p[6],   # Downloads period
+                )
+            )
 
-            # Get versions for each package
-            cur_vrsns.execute(query_vrsns, (json_package['id'],))
-            versions = cur_vrsns.fetchall()
+            # Get package id
+            package_id = output_curr.lastrowid
 
-            # Get column names
-            if v_col is None:
-                v_col = [desc[0] for desc in cur_vrsns.description]
+            # Get versions for this package
+            input_cursor.execute(query_vrsns, (p[0],))
+            versions = input_cursor.fetchall()
 
-            # Jsonify versions
-            versions = [dict(zip(v_col, version)) for version in versions]
-
-            # Add versions to package
-            json_package['versions'] = versions
-
-            # Write package to file
-            json.dump(json_package, f, default=str)
-            f.write('\n')
-
-            # Get next package
-            package = cur_pkgs.fetchone()
+            # Insert versions into output database
+            output_curr.executemany(
+                '''
+                    INSERT INTO versions (package_id, name, date)
+                    VALUES (?, ?, ?);
+                    ''',
+                [(package_id, v[0], v[1]) for v in versions]
+            )
 
     # Close database connection
-    conn.close()
+    input_conn.close()
