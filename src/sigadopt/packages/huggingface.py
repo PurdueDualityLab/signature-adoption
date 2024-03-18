@@ -37,7 +37,7 @@ def packages(output_conn, token_path=None, token=None):
     # hf_login(token=hf_token, add_to_git_credential=True)
 
     # Get list of all models on HuggingFace
-    model_list = list_models(full=True, token=hf_token)
+    model_list = list_models(full=True)  # , token=hf_token)
 
     # Insert packages into output database
     log.info('Adding packages to the output database.')
@@ -54,8 +54,10 @@ def packages(output_conn, token_path=None, token=None):
             VALUES (?, ?, ?, ?, ?, ?, ?);
         '''
 
-        # Count the number of gated repos
+        # Count the number of gated, disabled, and private repos
         num_gated = 0
+        num_disabled = 0
+        num_private = 0
 
         # Insert the data
         for model in model_list:
@@ -63,9 +65,16 @@ def packages(output_conn, token_path=None, token=None):
             if model.gated:
                 num_gated += 1
                 continue
+            if model.disabled:
+                num_disabled += 1
+                continue
+            if model.private:
+                num_private += 1
+                continue
 
             # Find number of commits for each model
-            num_commits = len(list_repo_commits(model.id, token=hf_token))
+            # , token=hf_token))
+            num_commits = len(list_repo_commits(model.id))
 
             # Put it in the database
             output_cursor.execute(
@@ -82,4 +91,6 @@ def packages(output_conn, token_path=None, token=None):
             )
 
         # Log the number of gated repos
-        log.info(f'Skipped gated repos: {num_gated}')
+        log.info(f'Skipped {num_gated} gated repos')
+        log.info(f'Skipped {num_disabled} disabled repos.')
+        log.info(f'Skipped {num_private} private repos.')
