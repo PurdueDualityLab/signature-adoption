@@ -1,5 +1,5 @@
 '''
-__init__.py: This is the __init__ file for the pre-filter subpackage.
+__init__.py: This is the __init__ file for the filter subpackage.
 '''
 
 

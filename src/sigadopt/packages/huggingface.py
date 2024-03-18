@@ -5,7 +5,7 @@ from Hugging Face.
 
 # Import statements
 import logging
-from huggingface_hub.hf_api import list_models
+from huggingface_hub.hf_api import list_models, list_repo_commits
 # from huggingface_hub import login as hf_login
 
 
@@ -49,12 +49,25 @@ def packages(output_conn, token_path=None, token=None):
         # Create the query
         query = '''
             INSERT INTO packages (name, registry_id, latest_release_date,
-                first_release_date, downloads, downloads_period)
-            VALUES (?, ?, ?, ?, ?, ?);
+                first_release_date, downloads, downloads_period,
+                versions_count)
+            VALUES (?, ?, ?, ?, ?, ?, ?);
         '''
+
+        # Count the number of gated repos
+        num_gated = 0
 
         # Insert the data
         for model in model_list:
+
+            if model.gated:
+                num_gated += 1
+                continue
+
+            # Find number of commits for each model
+            num_commits = len(list_repo_commits(model.id, token=hf_token))
+
+            # Put it in the database
             output_cursor.execute(
                 query,
                 (
@@ -64,5 +77,9 @@ def packages(output_conn, token_path=None, token=None):
                     model.created_at,      # first_release_date
                     model.downloads,       # downloads
                     'all_time',            # downloads_period
+                    num_commits            # versions_count
                 )
             )
+
+        # Log the number of gated repos
+        log.info(f'Skipped gated repos: {num_gated}')
