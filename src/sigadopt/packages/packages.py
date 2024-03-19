@@ -11,6 +11,7 @@ from sigadopt.packages.huggingface import packages as huggingface_packages
 from sigadopt.packages.docker import packages as docker_packages
 from sigadopt.packages.maven import packages as maven_packages
 from sigadopt.packages.pypi import packages as pypi_packages
+from sigadopt.packages.hfcommits import packages as hfcommits_packages
 
 
 class Packages(Stage):
@@ -34,6 +35,17 @@ class Packages(Stage):
         This function gets the packages from Hugging Face.
         '''
         huggingface_packages(
+            output_conn=self.conn,
+            token_path=self.args.token_path,
+            token=self.args.token,
+            clean=self.args.clean
+        )
+
+    def hfcommits(self):
+        '''
+        This function updates the database with the commits from Hugging Face.
+        '''
+        hfcommits_packages(
             output_conn=self.conn,
             token_path=self.args.token_path,
             token=self.args.token,

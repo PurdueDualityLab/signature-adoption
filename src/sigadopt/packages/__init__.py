@@ -43,9 +43,50 @@ def add_hf_args(registry_parser):
         dest='token_path',
         metavar='FILE',
         type=path_exists,
-        default=path_exists('./hftoken.txt'),
-        help='The path to the file containing the Hugging Face API token. '
-        'Defaults to ./hftoken.txt.'
+        default=None,
+        help='The path to the file containing the Hugging Face API token.'
+    )
+
+
+def add_hfcommits_args(registry_parser):
+    '''
+    This function creates and adds arguments to the Hugging Face subparser.
+
+    registry_parser: The subparser for the stage.
+    '''
+
+    # Hugging Face subparser
+    huggingface_parser = registry_parser.add_parser(
+        'hfcommits',
+        help='Get commits from Hugging Face. Run this after getting the '
+        'packages.'
+    )
+
+    # Set the function to use in the stage class
+    huggingface_parser.set_defaults(reg_func=Packages.hfcommits)
+
+    # Add Hugging Face specific arguments
+    hf_token_group = huggingface_parser.add_argument_group(
+        'HuggingFace Tokens',
+        'Pass the Hugging Face API token. This can be passed as an argument '
+        'or read from a file. Only one of these options can be used. The '
+        'default is to read from a file.')
+    hf_me_group = hf_token_group.add_mutually_exclusive_group()
+    hf_me_group.add_argument(
+        '--token',
+        dest='token',
+        metavar='TOKEN',
+        type=str,
+        default=None,
+        help='The Hugging Face API token.'
+    )
+    hf_me_group.add_argument(
+        '--token-path',
+        dest='token_path',
+        metavar='FILE',
+        type=path_exists,
+        default=None,
+        help='The path to the file containing the Hugging Face API token.'
     )
 
 
@@ -165,3 +206,4 @@ def add_arguments(top_parser):
     add_pypi_args(registry_parser)
     add_docker_args(registry_parser)
     add_maven_args(registry_parser)
+    add_hfcommits_args(registry_parser)
