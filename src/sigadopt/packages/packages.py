@@ -36,27 +36,37 @@ class Packages(Stage):
         huggingface_packages(
             output_conn=self.conn,
             token_path=self.args.token_path,
-            token=self.args.token
+            token=self.args.token,
+            clean=self.args.clean
         )
 
     def docker(self):
         '''
         This function gets the packages from Docker Hub.
         '''
-        docker_packages(output_conn=self.conn)
+        docker_packages(
+            output_conn=self.conn,
+            clean=self.args.clean
+        )
 
     def maven(self):
         '''
         This function gets the packages from Maven.
         '''
-        maven_packages(output_conn=self.conn)
+        maven_packages(
+            output_conn=self.conn,
+            clean=self.args.clean
+        )
 
     def pypi(self):
         '''
         This function gets the packages from PyPI.
         '''
-        pypi_packages(output_conn=self.conn,
-                      auth_path=self.args.auth_path)
+        pypi_packages(
+            output_conn=self.conn,
+            auth_path=self.args.auth_path,
+            clean=self.args.clean
+        )
 
     def ensure_db(self):
         '''
@@ -74,22 +84,6 @@ class Packages(Stage):
         except sqlite3.Error as e:
             self.log.error(f'Error connecting to the database: {e}')
             exit(-1)
-
-        # Check to see if the database is actually a database
-
-        # Clear existing data if requested
-        if self.args.clean:
-            self.log.info('Clearing existing data from database.')
-            with conn:
-                cursor = conn.cursor()
-                self.log.debug('Dropping registries table.')
-                cursor.execute('DROP TABLE IF EXISTS registries;')
-                self.log.debug('Dropping packages table.')
-                cursor.execute('DROP TABLE IF EXISTS packages;')
-                self.log.debug('Dropping versions table.')
-                cursor.execute('DROP TABLE IF EXISTS versions;')
-                self.log.debug('Dropping artifacts table.')
-                cursor.execute('DROP TABLE IF EXISTS artifacts;')
 
         # Create registry table
         with conn:

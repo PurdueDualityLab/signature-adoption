@@ -8,6 +8,7 @@ import logging.config
 import argparse
 from sigadopt.util.files import path_create
 from sigadopt.packages import add_arguments as packages_add_arguments
+from sigadopt.filter import add_arguments as filter_add_arguments
 
 # Author information
 __author__ = 'Taylor R. Schorlemmer'
@@ -85,3 +86,4 @@ pipeline_stage_parser = parser.add_subparsers(
     required=True,
 )
 packages_add_arguments(pipeline_stage_parser)
+filter_add_arguments(pipeline_stage_parser)

@@ -7,14 +7,17 @@ Docker Hub.
 import os
 import logging
 import psycopg2
+from sigadopt.util.database import clean_db
 
 
-def packages(output_conn):
+def packages(output_conn, clean=False):
     '''
     This function gets a list of and packages and associated metadata from
     docker hub using the ecosystems database. It writes the data to a database.
 
     output_conn: A connection to the output database.
+    clean: Whether to clear the tables for Docker Hub before adding the new
+    data.
     '''
 
     # Log start of function
@@ -55,6 +58,11 @@ def packages(output_conn):
     # Get packages
     input_cursor.execute(query_pkgs)
     packages = input_cursor.fetchall()
+
+    # Clear the packages table
+    if clean:
+        log.info('Clearing tables for Docker Hub.')
+        clean_db(output_conn, 2)
 
     # Insert packages into output database
     log.info('Inserting packages into output database.')

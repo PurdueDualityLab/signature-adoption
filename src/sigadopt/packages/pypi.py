@@ -6,15 +6,17 @@ pypi.py: This script gets the repositories and associated metadata from PyPI.
 import os
 import logging
 from google.cloud import bigquery
+from sigadopt.util.database import clean_db
 
 
-def packages(output_conn, auth_path=None):
+def packages(output_conn, auth_path=None, clean=False):
     '''
     This function gets a list of and packages and associated metadata from
     pypi using the ecosystems database.
 
     output_conn: The path to the output database.
     auth_path: The path to the authentication file.
+    clean: Whether to clear the tables for PyPI before adding the new data.
 
     returns: None
     '''
@@ -79,6 +81,11 @@ def packages(output_conn, auth_path=None):
                 packages[name][version] = {digest: file_obj}
         else:
             packages[name] = {version: {digest: file_obj}}
+
+    # Clear the packages table
+    if clean:
+        log.info('Clearing tables for PyPI.')
+        clean_db(output_conn, 4)
 
     # Insert packages into output database
     log.info('Adding packages to the output database.')
