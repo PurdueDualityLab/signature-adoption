@@ -3,6 +3,7 @@ __init__.py: This is the __init__ file for the filter subpackage.
 '''
 
 # Imports
+from datetime import datetime
 from sigadopt.filter.filter import Filter
 from sigadopt.util.files import path_exists, path_create
 
@@ -17,35 +18,36 @@ def add_hf_args(registry_parser):
     # Hugging Face subparser
     huggingface_parser = registry_parser.add_parser(
         'huggingface',
-        help='Get packages from Hugging Face.'
+        help='Filter packages from Hugging Face.'
     )
 
     # Set the function to use in the stage class
     huggingface_parser.set_defaults(reg_func=Filter.huggingface)
 
     # Add Hugging Face specific arguments
-    hf_token_group = huggingface_parser.add_argument_group(
-        'HuggingFace Tokens',
-        'Pass the Hugging Face API token. This can be passed as an argument '
-        'or read from a file. Only one of these options can be used. The '
-        'default is to read from a file.')
-    hf_me_group = hf_token_group.add_mutually_exclusive_group()
-    hf_me_group.add_argument(
-        '--token',
-        dest='token',
-        metavar='TOKEN',
-        type=str,
-        default=None,
-        help='The Hugging Face API token.'
+    huggingface_parser.add_argument(
+        '--min-downloads',
+        dest='min_downloads',
+        metavar='N',
+        type=int,
+        default=1,
+        help='The minimum number of downloads. Defaults to 1.'
     )
-    hf_me_group.add_argument(
-        '--token-path',
-        dest='token_path',
-        metavar='FILE',
-        type=path_exists,
-        default=path_exists('./hftoken.txt'),
-        help='The path to the file containing the Hugging Face API token. '
-        'Defaults to ./hftoken.txt.'
+    huggingface_parser.add_argument(
+        '--min-likes',
+        dest='min_likes',
+        metavar='N',
+        type=int,
+        default=0,
+        help='The minimum number of likes. Defaults to 0.'
+    )
+    huggingface_parser.add_argument(
+        '--min-versions',
+        dest='min_versions',
+        metavar='N',
+        type=int,
+        default=1,
+        help='The minimum number of versions. Defaults to 1.'
     )
 
 
@@ -59,7 +61,7 @@ def add_pypi_args(registry_parser):
     # PyPI subparser
     pypi_parser = registry_parser.add_parser(
         'pypi',
-        help='Get packages from PyPI.'
+        help='Filter packages from PyPI.'
     )
 
     # Set the function to use in the stage class
@@ -67,16 +69,12 @@ def add_pypi_args(registry_parser):
 
     # Add PyPI specific arguments
     pypi_parser.add_argument(
-        '--auth-path',
-        '-a',
-        dest='auth_path',
-        metavar='PATH',
-        type=path_exists,
-        default=None,
-        help='The path to the file containing the Google BigQuery '
-        'authentication information. Defaults to None and assumes that the '
-        'authentication information is in the GOOGLE_APPLICATION_CREDENTIALS '
-        'environment variable.'
+        '--min-versions',
+        dest='min_versions',
+        metavar='N',
+        type=int,
+        default=1,
+        help='The minimum number of versions. Defaults to 1.'
     )
 
 
@@ -90,11 +88,29 @@ def add_docker_args(registry_parser):
     # Docker subparser
     docker_parser = registry_parser.add_parser(
         'docker',
-        help='Get packages from Docker Hub.'
+        help='Filter packages from Docker Hub.'
     )
 
     # Set the function to use in the stage class
     docker_parser.set_defaults(reg_func=Filter.docker)
+
+    # Add PyPI specific arguments
+    docker_parser.add_argument(
+        '--min-downloads',
+        dest='min_downloads',
+        metavar='N',
+        type=int,
+        default=1,
+        help='The minimum number of downloads. Defaults to 1.'
+    )
+    docker_parser.add_argument(
+        '--min-versions',
+        dest='min_versions',
+        metavar='N',
+        type=int,
+        default=1,
+        help='The minimum number of versions. Defaults to 1.'
+    )
 
 
 def add_maven_args(registry_parser):
@@ -107,11 +123,31 @@ def add_maven_args(registry_parser):
     # Maven subparser
     maven_parser = registry_parser.add_parser(
         'maven',
-        help='Get packages from Maven.'
+        help='Filter packages from Maven.'
     )
 
     # Set the function to use in the stage class
     maven_parser.set_defaults(reg_func=Filter.maven)
+
+    # Add Maven specific arguments
+    maven_parser.add_argument(
+        '--min-versions',
+        dest='min_versions',
+        metavar='N',
+        type=int,
+        default=1,
+        help='The minimum number of versions. '
+        'Defaults to 1.'
+    )
+    maven_parser.add_argument(
+        '--min-dependants',
+        dest='min_dependants',
+        metavar='N',
+        type=int,
+        default=1,
+        help='The minimum number of dependants. '
+        'Defaults to 1.'
+    )
 
 
 def add_arguments(top_parser):
@@ -123,28 +159,57 @@ def add_arguments(top_parser):
 
     # Create a parser for the packages stage
     parser = top_parser.add_parser(
-        'packages',
-        help='Get packages from different registries.'
+        'filter',
+        help='Filter packages from different registries.'
     )
 
     # Add stage specific arguments
+    parser.add_argument(
+        '--input',
+        '-i',
+        dest='input_path',
+        metavar='PATH',
+        type=path_exists,
+        default=path_exists('./data/packages.db'),
+        help='The path to the input databse file. Defaults to '
+                './data/packages.db.'
+    )
     parser.add_argument(
         '--output',
         '-o',
         dest='output',
         metavar='PATH',
         type=path_create,
-        default=path_create('./data/packages.db'),
+        default=path_create('./data/filter.db'),
         help='The path to the output database file. Defaults to '
-        './data/packages.db.',
+        './data/filter.db. This can be set to the input database file to '
+        'overwrite the input database file.'
     )
     parser.add_argument(
-        '--clean',
-        '-c',
-        dest='clean',
-        action='store_true',
-        help='Flag to clear existing data from the database before adding new '
-        'data. Defaults to False.'
+        '--max-date',
+        dest='max_date',
+        metavar='YYYY-MM-DD',
+        type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
+        default=None,
+        help='The maximum date of the package and its versions/artifacts. In '
+        'the format YYYY-MM-DD. If not provided, no maximum date.'
+    )
+    parser.add_argument(
+        '--min-date',
+        dest='min_date',
+        metavar='YYYY-MM-DD',
+        type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
+        default=None,
+        help='The minimum date of the package and its versions/artifacts. In '
+        'the format YYYY-MM-DD. If not provided, no minimum date.'
+    )
+    parser.add_argument(
+        '--random-select',
+        dest='random_select',
+        metavar='N',
+        type=int,
+        default=-1,
+        help='Randomly select N packages. Defaults to -1, which means all.'
     )
 
     # Give the parser a stage class to use

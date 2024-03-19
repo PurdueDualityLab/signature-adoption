@@ -1,12 +1,10 @@
-#!/usr/bin/env python
-
-'''filter.py: This script filters the list of packages from PyPI.
+'''
+pypi.py: This script filters the list of packages from PyPI.
 '''
 
 # Import statements
-import logging as log
+import logging
 import random
-import json
 from datetime import datetime
 
 # authorship information

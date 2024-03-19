@@ -16,18 +16,20 @@ def clean_db(conn, registry_id):
         curr = conn.cursor()
         curr.execute(
             '''
-            DELETE FROM artifacts a
-            JOIN versions v ON a.version_id = v.id
-            JOIN packages p ON v.package_id = p.id
-            WHERE p.registry_id = ?;
+            DELETE FROM artifacts
+            WHERE version_id IN (
+                SELECT id FROM versions WHERE package_id IN (
+                    SELECT id FROM packages WHERE registry_id = ?
+                )
+            );
             ''',
             (registry_id,)
         )
         curr.execute(
             '''
-            DELETE FROM versions v
-            JOIN packages p ON v.package_id = p.id
-            WHERE p.registry_id = ?;
+            DELETE FROM versions WHERE package_id IN (
+                SELECT id FROM packages WHERE registry_id = ?
+            );
             ''',
             (registry_id,)
         )
