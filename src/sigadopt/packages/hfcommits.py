@@ -65,6 +65,9 @@ def packages(output_conn, token_path=None, token=None, clean=False):
         # Create the cursor
         output_cursor = output_conn.cursor()
 
+        # Tracker for number of failed packages
+        failed_packages = 0
+
         # Iterate through the packages
         for indx, package in enumerate(package_list):
 
@@ -72,8 +75,16 @@ def packages(output_conn, token_path=None, token=None, clean=False):
             package_id = package[0]
             model_id = package[1]
 
-            # Get commits and iterate through
-            commits = list_repo_commits(model_id, token=hf_token)
+            # Get commits
+            commits = []
+            try:
+                commits = list_repo_commits(model_id, token=hf_token)
+            except Exception as e:
+                failed_packages += 1
+                log.warning(f'Error getting commits for {model_id}')
+                log.debug(e)
+
+            # Insert commits into output database
             for commit in commits:
                 try:
                     output_cursor.execute(
@@ -116,3 +127,6 @@ def packages(output_conn, token_path=None, token=None, clean=False):
             if indx % 100 == 0:
                 log.debug(f'Processing package {indx}.')
                 output_conn.commit()
+
+        # Log the number of failed packages
+        log.info(f'Failed to get commits for {failed_packages} packages.')
