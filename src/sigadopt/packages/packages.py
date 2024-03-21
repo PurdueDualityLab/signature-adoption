@@ -49,7 +49,7 @@ class Packages(Stage):
             output_conn=self.conn,
             token_path=self.args.token_path,
             token=self.args.token,
-            clean=self.args.clean
+            clean=self.args.clean,
         )
 
     def docker(self):

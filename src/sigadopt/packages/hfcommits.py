@@ -9,7 +9,12 @@ from huggingface_hub.hf_api import list_repo_commits
 from sigadopt.util.database import clean_db
 
 
-def packages(output_conn, token_path=None, token=None, clean=False):
+def packages(
+    output_conn,
+    token_path=None,
+    token=None,
+    clean=False,
+):
     '''
     This function gets the repositories and associated metadata from
     HuggingFace. The data is saved in the output_conn database.
@@ -42,7 +47,7 @@ def packages(output_conn, token_path=None, token=None, clean=False):
 
         # Create the query
         query = '''
-            SELECT id, name
+            SELECT id, name, versions_count
             FROM packages
             WHERE registry_id = 1;
         '''
@@ -56,12 +61,13 @@ def packages(output_conn, token_path=None, token=None, clean=False):
     # Clean the versions table
     if clean:
         # Clear the versions table
-        log.info('Clearing versions for Hugging Face.')
+        log.info('Cleaning versions for Hugging Face.')
         clean_db(output_conn, 1, 1)
 
     # Get commits for each package
     log.info('Getting commits from Hugging Face.')
     with output_conn:
+
         # Create the cursor
         output_cursor = output_conn.cursor()
 
@@ -74,58 +80,61 @@ def packages(output_conn, token_path=None, token=None, clean=False):
             # Info from package
             package_id = package[0]
             model_id = package[1]
+            versions_count = package[2]
+
+            # Skip if we already have the versions
+            if versions_count:
+                continue
 
             # Get commits
-            commits = []
+            commits = None
             try:
                 commits = list_repo_commits(model_id, token=hf_token)
             except Exception as e:
                 failed_packages += 1
-                log.warning(f'Error getting commits for {model_id}')
+                log.warning(f'Unable to get commits for {model_id}')
                 log.debug(e)
-
-            # Insert commits into output database
-            for commit in commits:
-                try:
-                    output_cursor.execute(
-                        '''
-                            INSERT INTO versions (package_id, name, date)
-                            VALUES (?, ?, ?);
-                        ''',
-                        (
-                            package_id,              # package_id
-                            commit.commit_id,            # name
-                            commit.created_at.strftime('%Y-%m-%d %H:%M:%S')
-                        )
-                    )
-                except Exception as e:
-                    print(model_id)
-                    print([c.commit_id for c in commits])
-                    print(commit.commit_id)
-                    exit(-1)
 
             # Update package with number of versions or delete if no versions
             if commits:
-                output_cursor.execute(
-                    '''
-                        UPDATE packages
-                        SET versions_count = ?
-                        WHERE id = ?;
-                    ''',
-                    (len(commits), package_id)
-                )
-            else:
-                output_cursor.execute(
-                    '''
-                        DELETE FROM packages
-                        WHERE id = ?;
-                    ''',
-                    (package_id,)
-                )
+
+                # Create a set of commits to ensure no duplicates
+                commits = {
+                    commit.commit_id: commit.created_at for commit in commits}
+
+                # Insert commits into output database
+                for commit_id, created_at in commits.items():
+                    try:
+                        output_cursor.execute(
+                            '''
+                                INSERT INTO versions (package_id, name, date)
+                                VALUES (?, ?, ?);
+                            ''',
+                            (
+                                package_id,           # package_id
+                                commit_id,            # name
+                                created_at.strftime('%Y-%m-%d %H:%M:%S')
+                            )
+                        )
+                    except Exception as e:
+                        log.error(
+                            f'Error inserting commit {commit_id} '
+                            f'for {model_id}'
+                        )
+                        log.debug(e)
+
+                    output_cursor.execute(
+                        '''
+                            UPDATE packages
+                            SET versions_count = ?
+                            WHERE id = ?;
+                        ''',
+                        (len(commits), package_id)
+                    )
 
             # Log progress and make the occasional commit
             if indx % 100 == 0:
-                log.debug(f'Processing package {indx}.')
+                log.info(f'Processing package {indx}.')
                 output_conn.commit()
 
         # Log the number of failed packages
