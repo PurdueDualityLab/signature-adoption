@@ -166,17 +166,17 @@ def add_arguments(top_parser):
     # Add stage specific arguments
     parser.add_argument(
         'input',
-        dest='input',
         metavar='PATH',
         type=path_exists,
         help='The path to the input databse file. Defaults to '
                 './data/packages.db.'
     )
     parser.add_argument(
-        dest='output',
+        'output',
         metavar='PATH',
         type=path_create,
-        help='The path to the output database file. This can be set to the input database file to overwrite the input database file.'
+        help='The path to the output database file. This can be set to the '
+                'input database file to overwrite the input database file.'
     )
     parser.add_argument(
         '--max-date',

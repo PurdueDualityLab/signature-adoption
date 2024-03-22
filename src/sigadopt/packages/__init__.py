@@ -170,14 +170,10 @@ def add_arguments(top_parser):
 
     # Add stage specific arguments
     parser.add_argument(
-        '--output',
-        '-o',
-        dest='output',
+        'output',
         metavar='PATH',
         type=path_create,
-        default=path_create('./data/packages.db'),
-        help='The path to the output database file. Defaults to '
-        './data/packages.db.',
+        help='The path to the output database file.'
     )
     parser.add_argument(
         '--clean',
