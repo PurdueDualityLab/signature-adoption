@@ -23,9 +23,9 @@ def packages(output_conn, clean=False):
 
     # Log start of function
     log = logging.getLogger(__name__)
-    log.info("Getting packages from Maven Central.")
 
     # Get database password or use default 'postgres'
+    log.info("Connecting to input database.")
     localhost_password = os.environ.get("PSQL_Password") or 'postgres'
 
     # Set database credentials
@@ -41,23 +41,15 @@ def packages(output_conn, clean=False):
     input_conn = psycopg2.connect(**db_credentials)
     input_cursor = input_conn.cursor()
 
-    # Query to get packages
-    query_pkgs = '''
-        SELECT id, name, versions_count, latest_release_published_at,
-            first_release_published_at, downloads, downloads_period
-        FROM packages
-        WHERE registry_id = 22;
-    '''
-
-    # Query to get versions
-    query_vrsns = '''
-        SELECT number, published_at
-        FROM versions
-        WHERE package_id = %s;
-    '''
-
     # Get packages
-    input_cursor.execute(query_pkgs)
+    log.info('Getting packages from Maven Central.')
+    input_cursor.execute(
+        '''
+            SELECT id, name, versions_count, latest_release_published_at,
+                first_release_published_at, downloads, downloads_period
+            FROM packages
+            WHERE registry_id = 22;
+        ''')
     packages = input_cursor.fetchall()
 
     # Clean output database
@@ -72,8 +64,11 @@ def packages(output_conn, clean=False):
         # Create cursor
         output_curr = output_conn.cursor()
 
+        # Variable to hold package id links
+        package_ids = {}
+
         # Iterate through packages
-        for p in packages:
+        for indx, p in enumerate(packages):
 
             # Insert package into output database
             output_curr.execute(
@@ -95,20 +90,36 @@ def packages(output_conn, clean=False):
             )
 
             # Get package id
-            package_id = output_curr.lastrowid
+            package_ids[p[0]] = output_curr.lastrowid
 
-            # Get versions for this package
-            input_cursor.execute(query_vrsns, (p[0],))
-            versions = input_cursor.fetchall()
+        # Commit changes
+        log.info('Committing packages to output database.')
+        output_conn.commit()
 
-            # Insert versions into output database
-            output_curr.executemany(
-                '''
-                    INSERT INTO versions (package_id, name, date)
-                    VALUES (?, ?, ?);
-                    ''',
-                [(package_id, v[0], v[1]) for v in versions]
-            )
+        # Get all versions
+        log.info('Getting versions from Maven Central.')
+        input_cursor.execute('''
+            SELECT v.package_id, v.number, v.published_at
+            FROM versions v
+            JOIN packages p
+            ON v.package_id = p.id
+            WHERE p.registry_id = 22;
+        ''')
+        versions = input_cursor.fetchall()
+
+        # Insert versions into output database
+        log.info('Inserting versions into output database.')
+        output_curr.executemany(
+            '''
+                INSERT INTO versions (package_id, name, date)
+                VALUES (?, ?, ?);
+            ''',
+            [(package_ids[v[0]], v[1], v[2]) for v in versions]
+        )
+
+        # Commit changes
+        log.info('Committing versions to output database.')
+        output_conn.commit()
 
     # Close database connection
     input_conn.close()
