@@ -1,73 +1,120 @@
-#!/usr/bin/env python
-
-'''filter.py: This script filters the list of packages from HuggingFace.
+'''
+huggingface.py: This script filters the list of packages from HuggingFace.
 '''
 
 # Import statements
-import logging as log
+import logging
 import random
-import json
-
-# authorship information
-__author__ = "Taylor R. Schorlemmer"
-__email__ = "tschorle@purdue.edu"
-
-# Function to filter the packages
+from sigadopt.util.database import Registry, clean_db
 
 
-def filter(input_path,
-           output_path,
-           random_select=-1,
-           min_downloads=1,
-           min_likes=0):
+def filter(
+    input_conn,
+    output_conn,
+    min_date,
+    max_date,
+    min_versions,
+    max_versions,
+    random_select
+):
     '''
     This function filters HuggingFace packages.
 
-    input_path: the path to the input file.
-    output_path: the path to the output file.
-    random_select: the number of packages to randomly select. If -1, all.
-    min_downloads: the minimum number of downloads.
-    min_likes: the minimum number of likes.
+    input_conn: the connection to the input database.
+    output_conn: the connection to the output database.
+    min_date: the minimum date of the package and its versions/artifacts.
+    max_date: the maximum date of the package and its versions/artifacts.
+    min_versions: the minimum number of versions for a package.
+    max_versions: the maximum number of versions for a package.
+    random_select: the number of packages to randomly select.
     '''
 
-    # Initialize the list of packages
-    selected = []
+    # Create a logger
+    log = logging.getLogger(__name__)
 
-    # Open the input and output files
-    with open(input_path, 'r') as input_file:
+    # Get the versions from Hugging Face with the specified date range
+    log.debug('Collecting all Hugging Face versions inside the date range.')
+    versions = None
+    with input_conn:
+        curr = input_conn.cursor()
+        curr.execute(
+            '''
+                SELECT v.*
+                FROM versions v
+                JOIN packages p ON v.package_id = p.id
+                WHERE p.registry_id = ?
+                AND v.date
+                BETWEEN ? AND ?
+            ''',
+            (
+                Registry.HUGGINGFACE,
+                min_date,
+                max_date
+            )
+        )
+        versions = curr.fetchall()
 
-        # Iterate over the lines in the input file
-        for indx, line in enumerate(input_file):
+    # Filter the packages based on the number of versions
+    log.debug('Filtering packages based on the number of versions.')
 
-            # Log the progress
-            if indx % 1000 == 0:
-                log.info(f'Processing line {indx}')
+    # First we need to count how many versions exist inside of the date range
+    # for each package
+    pv_link = {}
 
-            # Load the line as JSON
-            package = json.loads(line)
+    # Iterate through versions
+    for version in versions:
 
-            # Check if the package has enough downloads and likes
-            if package['downloads'] >= min_downloads and \
-                    package['likes'] >= min_likes:
+        # Get the package id
+        package_id = version[1]
 
-                # Add the package to the list
-                selected.append(package)
+        # If the package id is not in the dictionary, add it
+        if package_id not in pv_link:
+            pv_link[package_id] = []
 
-    # Log length of list
-    log.info(f'Length after filter: {len(selected)}')
+        # Add the version to the list of versions for the package
+        pv_link[package_id].append(version)
 
-    # If random_select is -1, set it to the length of the list
-    if random_select == -1:
-        random_select = len(selected)
+    # Filter the packages based on the number of versions
+    pv_link = {
+        package_id: versions for package_id, versions in pv_link.items()
+        if min_versions <= len(versions) <= max_versions
+    }
 
-    # Randomly select the packages
-    selected = random.sample(selected, random_select)
+    # Randomly select packages if needed
+    if random_select != -1:
+        log.debug('Randomly selecting packages.')
 
-    # Log length of list
-    log.info(f'Length after sample: {len(selected)}')
+        # Randomly select N packages
+        selected = random.sample(pv_link.keys(), random_select)
 
-    # Write the packages to the output file
-    with open(output_path, 'w') as output_file:
-        for package in selected:
-            json.dump(package, output_file)
-            output_file.write('\n')
+        # Filter the packages based on the selected packages
+        pv_link = {
+            package_id: versions for package_id, versions in pv_link.items()
+            if package_id in selected
+        }
+
+    # Get a list of selected packages
+    selected_packages = None
+    log.debug('Collecting selected pacakges.')
+    with input_conn:
+        curr = input_conn.cursor()
+        curr.execute(
+            '''
+                SELECT *
+                FROM packages
+                WHERE id IN (?)
+            ''',
+            (pv_link.keys(),)
+        )
+        selected_packages = curr.fetchall()
+
+    # Clear the output database for Hugging Face
+    log.debug('Cleaning the output database.')
+    clean_db(output_conn, Registry.HUGGINGFACE)
+
+    # Update selected packages with version count
+    log.debug('Updating selected packages with version count.')
+
+    # Insert selected packages into the output database
+
+    # Insert selected versions into the output database

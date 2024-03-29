@@ -2,6 +2,24 @@
 database.py: This module contains functions to interact with the databases.
 '''
 
+# Imports
+import sqlite3
+import logging
+from enum import IntEnum
+
+# Create a logger
+log = logging.getLogger(__name__)
+
+
+class Registry(IntEnum):
+    '''
+    This class contains the registry ids.
+    '''
+    HUGGINGFACE = 1
+    DOCKER = 2
+    MAVEN = 3
+    PYPI = 4
+
 
 def clean_db(conn, registry_id, level=0):
     '''
@@ -14,6 +32,7 @@ def clean_db(conn, registry_id, level=0):
 
     return: None
     '''
+    log.debug(f'Cleaning database for registry: {registry_id} level: {level}')
     with conn:
         curr = conn.cursor()
         if level <= 2:
@@ -43,3 +62,133 @@ def clean_db(conn, registry_id, level=0):
             curr.execute(
                 f'DELETE FROM packages WHERE registry_id = {registry_id};'
             )
+
+
+def connect_db(db_path):
+    '''
+    This function ensures the database is available and returns a connection
+    to it.
+
+    db_path: The path to the database.
+
+    return: The connection to the database.
+    '''
+
+    log.debug('Ensuring database is available.')
+
+    # Connect to the database
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+    except sqlite3.Error as e:
+        log.error(f'Error connecting to the database: {e}')
+        exit(-1)
+
+    # Check to see if the database is available
+    if conn is None:
+        log.error(f'Error connecting to the database: {db_path}')
+        exit(-1)
+
+    # Return the connection
+    log.debug(f'Connected to database: {db_path}')
+    return conn
+
+
+def init_db(db_conn):
+    '''
+    This function initializes the database with the required tables.
+
+    db_conn: The connection to the database.
+    '''
+
+    # Create registry table
+    log.debug('Creating registry table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS registries (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                UNIQUE (name)
+            );
+            '''
+        )
+        db_conn.execute(
+            '''
+            INSERT OR IGNORE INTO registries (name)
+            VALUES ('Hugging Face');
+            '''
+        )
+        db_conn.execute(
+            '''
+            INSERT OR IGNORE INTO registries (name)
+            VALUES ('Docker Hub');
+            '''
+        )
+        db_conn.execute(
+            '''
+            INSERT OR IGNORE INTO registries (name)
+            VALUES ('Maven Central');
+            '''
+        )
+        db_conn.execute(
+            '''
+            INSERT OR IGNORE INTO registries (name)
+            VALUES ('PyPI');
+            '''
+        )
+
+    # Create package table
+    log.debug('Creating package table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS packages (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                registry_id INTEGER NOT NULL,
+                versions_count INTEGER,
+                latest_release_date TEXT,
+                first_release_date TEXT,
+                downloads INTEGER,
+                downloads_period TEXT,
+                UNIQUE (name, registry_id),
+                FOREIGN KEY (registry_id) REFERENCES registries (id)
+            );
+            '''
+        )
+
+    # Create version table
+    log.debug('Creating version table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS versions (
+                id INTEGER PRIMARY KEY,
+                package_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                date TEXT,
+                UNIQUE (package_id, name)
+                FOREIGN KEY (package_id) REFERENCES packages (id)
+            );
+            '''
+        )
+
+    # Create artifact table
+    log.debug('Creating artifact table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id INTEGER PRIMARY KEY,
+                version_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                type TEXT NOT NULL,
+                has_sig INTEGER NOT NULL,
+                digest TEXT,
+                date TEXT,
+                UNIQUE (version_id, name),
+                FOREIGN KEY (version_id) REFERENCES versions (id)
+            );
+            '''
+        )

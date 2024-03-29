@@ -25,30 +25,6 @@ def add_hf_args(registry_parser):
     huggingface_parser.set_defaults(reg_func=Filter.huggingface)
 
     # Add Hugging Face specific arguments
-    huggingface_parser.add_argument(
-        '--min-downloads',
-        dest='min_downloads',
-        metavar='N',
-        type=int,
-        default=1,
-        help='The minimum number of downloads. Defaults to 1.'
-    )
-    huggingface_parser.add_argument(
-        '--min-likes',
-        dest='min_likes',
-        metavar='N',
-        type=int,
-        default=0,
-        help='The minimum number of likes. Defaults to 0.'
-    )
-    huggingface_parser.add_argument(
-        '--min-versions',
-        dest='min_versions',
-        metavar='N',
-        type=int,
-        default=1,
-        help='The minimum number of versions. Defaults to 1.'
-    )
 
 
 def add_pypi_args(registry_parser):
@@ -68,14 +44,6 @@ def add_pypi_args(registry_parser):
     pypi_parser.set_defaults(reg_func=Filter.pypi)
 
     # Add PyPI specific arguments
-    pypi_parser.add_argument(
-        '--min-versions',
-        dest='min_versions',
-        metavar='N',
-        type=int,
-        default=1,
-        help='The minimum number of versions. Defaults to 1.'
-    )
 
 
 def add_docker_args(registry_parser):
@@ -95,22 +63,6 @@ def add_docker_args(registry_parser):
     docker_parser.set_defaults(reg_func=Filter.docker)
 
     # Add PyPI specific arguments
-    docker_parser.add_argument(
-        '--min-downloads',
-        dest='min_downloads',
-        metavar='N',
-        type=int,
-        default=1,
-        help='The minimum number of downloads. Defaults to 1.'
-    )
-    docker_parser.add_argument(
-        '--min-versions',
-        dest='min_versions',
-        metavar='N',
-        type=int,
-        default=1,
-        help='The minimum number of versions. Defaults to 1.'
-    )
 
 
 def add_maven_args(registry_parser):
@@ -130,24 +82,6 @@ def add_maven_args(registry_parser):
     maven_parser.set_defaults(reg_func=Filter.maven)
 
     # Add Maven specific arguments
-    maven_parser.add_argument(
-        '--min-versions',
-        dest='min_versions',
-        metavar='N',
-        type=int,
-        default=1,
-        help='The minimum number of versions. '
-        'Defaults to 1.'
-    )
-    maven_parser.add_argument(
-        '--min-dependants',
-        dest='min_dependants',
-        metavar='N',
-        type=int,
-        default=1,
-        help='The minimum number of dependants. '
-        'Defaults to 1.'
-    )
 
 
 def add_arguments(top_parser):
@@ -169,17 +103,18 @@ def add_arguments(top_parser):
         metavar='PATH',
         type=path_exists,
         help='The path to the input databse file. Defaults to '
-                './data/packages.db.'
     )
     parser.add_argument(
         'output',
         metavar='PATH',
         type=path_create,
         help='The path to the output database file. This can be set to the '
-                'input database file to overwrite the input database file.'
+        'input database file to overwrite the input database file. Clears the '
+        'output database file for the selected registry before copying.'
     )
     parser.add_argument(
         '--max-date',
+        '-D',
         dest='max_date',
         metavar='YYYY-MM-DD',
         type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
@@ -189,6 +124,7 @@ def add_arguments(top_parser):
     )
     parser.add_argument(
         '--min-date',
+        '-d',
         dest='min_date',
         metavar='YYYY-MM-DD',
         type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
@@ -198,11 +134,32 @@ def add_arguments(top_parser):
     )
     parser.add_argument(
         '--random-select',
+        '-r',
         dest='random_select',
         metavar='N',
         type=int,
         default=-1,
         help='Randomly select N packages. Defaults to -1, which means all.'
+    )
+    parser.add_argument(
+        '--min-versions',
+        '-v',
+        dest='min_versions',
+        metavar='N',
+        type=int,
+        default=0,
+        help='The minimum number of versions a package must have to be '
+        'included. Defaults to 0.'
+    )
+    parser.add_argument(
+        '--max-versions',
+        '-V',
+        dest='max_versions',
+        metavar='N',
+        type=int,
+        default=None,
+        help='The maximum number of versions a package can have to be '
+        'included. Defaults to None.'
     )
 
     # Give the parser a stage class to use
@@ -211,8 +168,8 @@ def add_arguments(top_parser):
     # Create subparsers for each registry
     registry_parser = parser.add_subparsers(
         title='registry',
-        description='The registry to get packages from.',
-        help='The registry to get a list of packages from.',
+        description='The registry to filter on.',
+        help='The registry to filter on.',
         dest='registry',
         metavar='REGISTRY',
         required=True
