@@ -1,105 +1,154 @@
-#!/usr/bin/env python
-
-'''filter.py: This script filters the list of packages from Maven Central.
+'''
+maven.py: This script filters the list of packages from Maven Central.
 '''
 
 # Import statements
-import logging as log
+import logging
 import random
-import json
-from datetime import datetime
-
-# authorship information
-__author__ = "Taylor R. Schorlemmer"
-__email__ = "tschorle@purdue.edu"
-
-# Function to filter the packages
+from sigadopt.util.database import Registry, clean_db
 
 
-def filter(input_path,
-           output_path,
-           random_select=-1,
-           min_versions=1,
-           min_dependants=0,
-           min_date=None):
+def filter(
+    input_conn,
+    output_conn,
+    min_date,
+    max_date,
+    min_versions,
+    max_versions,
+    random_select
+):
     '''
     This function filters Maven Central packages.
 
-    input_path: the path to the input file.
-    output_path: the path to the output file.
-    random_select: the number of packages to randomly select. If -1, all.
-    min_versions: the minimum number of versions.
-    min_dependants: the minimum number of dependants.
-    min_date: the minimum date of the package. If None, no minimum date.
+    input_conn: the connection to the input database.
+    output_conn: the connection to the output database.
+    min_date: the minimum date of the package and its versions/artifacts.
+    max_date: the maximum date of the package and its versions/artifacts.
+    min_versions: the minimum number of versions for a package.
+    max_versions: the maximum number of versions for a package.
+    random_select: the number of packages to randomly select.
     '''
 
-    # Initialize the list of packages
-    selected = []
+    # Create a logger
+    log = logging.getLogger(__name__)
 
-    # Open the input and output files
-    with open(input_path, 'r') as input_file:
+    # Get the versions from Maven Central with the specified date range
+    log.debug('Collecting all Maven Central versions inside the date range.')
+    versions = None
+    with input_conn:
+        curr = input_conn.cursor()
+        curr.execute(
+            '''
+                SELECT v.*
+                FROM versions v
+                JOIN packages p ON v.package_id = p.id
+                WHERE p.registry_id = ?
+                AND v.date
+                BETWEEN ? AND ?
+            ''',
+            (
+                Registry.MAVEN,
+                min_date,
+                max_date
+            )
+        )
+        versions = curr.fetchall()
 
-        # Iterate over the lines in the input file
-        for indx, line in enumerate(input_file):
+    # Filter the packages based on the number of versions
+    log.debug('Filtering packages based on the number of versions.')
 
-            # Log the progress
-            if indx % 1000 == 0:
-                log.info(f'Processing line {indx}')
+    # First we need to count how many versions exist inside of the date range
+    # for each package
+    pv_link = {}
 
-            # Load the line as JSON
-            package = json.loads(line)
+    # Iterate through versions
+    for version in versions:
 
-            # Cont if the package doesn't have the min downloads or versions
-            if package['dependent_repos_count'] < min_dependants and \
-                    package['versions_count'] < min_versions:
-                continue
+        # Get the package id
+        package_id = version[1]
 
-            # Check if we have a min_date, if so filter the versions
-            if min_date is not None:
+        # If the package id is not in the dictionary, add it
+        if package_id not in pv_link:
+            pv_link[package_id] = []
 
-                # Cont if latest release date is less than min_date
-                latest_release_date = datetime.strptime(
-                    package['latest_release_published_at'].split('.')[0],
-                    '%Y-%m-%d %H:%M:%S'
+        # Add the version to the list of versions for the package
+        pv_link[package_id].append(version)
+
+    # Filter the packages based on the number of versions
+    pv_link = {
+        package_id: versions for package_id, versions in pv_link.items()
+        if min_versions <= len(versions) <= max_versions
+    }
+
+    # Randomly select packages if needed
+    if random_select != -1:
+        log.debug('Randomly selecting packages.')
+
+        # Randomly select N packages
+        selected = random.sample(pv_link.keys(), random_select)
+
+        # Filter the packages based on the selected packages
+        pv_link = {
+            package_id: versions for package_id, versions in pv_link.items()
+            if package_id in selected
+        }
+
+    # Get a list of selected packages
+    selected_packages = []
+    log.debug('Collecting selected pacakges.')
+    with input_conn:
+        curr = input_conn.cursor()
+
+        for package_id in pv_link.keys():
+            curr.execute(
+                '''
+                    SELECT *
+                    FROM packages
+                    WHERE id = ?
+                ''',
+                (package_id,)
+            )
+            selected_packages.append(curr.fetchone())
+
+    # Clear the output database for Maven Central
+    log.debug('Cleaning the output database.')
+    clean_db(output_conn, Registry.MAVEN)
+
+    # Update selected packages with version count
+    log.debug('Updating selected packages with version count.')
+    for package in selected_packages:
+        new_package = list(package)
+        new_package[3] = len(pv_link[package[0]])
+        package = tuple(new_package)
+
+    # Insert selected packages into the output database
+    log.debug('Inserting selected packages into the output database.')
+    with output_conn:
+        curr = output_conn.cursor()
+        curr.executemany(
+            '''
+                INSERT INTO packages (
+                    id, name, registry_id, versions_count, latest_release_date,
+                    first_release_date, downloads, downloads_period
                 )
-                if latest_release_date < min_date:
-                    continue
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            selected_packages
+        )
 
-                # Remove all versions that are less than min_date
-                versions = package['versions']
-                package['versions'] = [
-                    version for version in versions if
-                    datetime.strptime(
-                        version['published_at'].split('.')[0],
-                        '%Y-%m-%d %H:%M:%S'
-                    )
-                    >= min_date
-                ]
+    # Insert selected versions into the outpt database
+    log.debug('Inserting selected versions into the output database.')
 
-                # Update the versions count and check if it's still greater
-                # than or equal to min_versions
-                package['versions_count'] = len(package['versions'])
-                if package['versions_count'] < min_versions:
-                    continue
+    # Get the selected versions
+    selected_versions = [v for versions in pv_link.values() for v in versions]
 
-            # Add the package to the list
-            selected.append(package)
-
-    # Log length of list
-    log.info(f'Length after filter: {len(selected)}')
-
-    # If random_select is -1, set it to the length of the list
-    if random_select == -1:
-        random_select = len(selected)
-
-    # Randomly select the packages
-    selected = random.sample(selected, random_select)
-
-    # Log length of list
-    log.info(f'Length after sample: {len(selected)}')
-
-    # Write the packages to the output file
-    with open(output_path, 'w') as output_file:
-        for package in selected:
-            json.dump(package, output_file)
-            output_file.write('\n')
+    # Insert the selected versions
+    with output_conn:
+        curr = output_conn.cursor()
+        curr.executemany(
+            '''
+                INSERT INTO versions (id, package_id, name, date)
+                VALUES (?, ?, ?, ?)
+            ''',
+            selected_versions
+        )

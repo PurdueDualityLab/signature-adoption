@@ -5,97 +5,186 @@ pypi.py: This script filters the list of packages from PyPI.
 # Import statements
 import logging
 import random
-from datetime import datetime
-
-# authorship information
-__author__ = "Taylor R. Schorlemmer"
-__email__ = "tschorle@purdue.edu"
-
-# Function to filter the packages
+from sigadopt.util.database import Registry, clean_db
 
 
-def filter(input_path,
-           output_path,
-           random_select=-1,
-           min_versions=1,
-           min_date=None):
+def filter(
+    input_conn,
+    output_conn,
+    min_date,
+    max_date,
+    min_versions,
+    max_versions,
+    random_select
+):
     '''
     This function filters PyPI packages.
 
-    input_path: the path to the input file.
-    output_path: the path to the output file.
-    random_select: the number of packages to randomly select. If -1, all.
-    min_versions: the minimum number of versions.
-    min_date: the minimum date of the package. If None, no minimum date.
+    input_conn: the connection to the input database.
+    output_conn: the connection to the output database.
+    min_date: the minimum date of the package and its versions/artifacts.
+    max_date: the maximum date of the package and its versions/artifacts.
+    min_versions: the minimum number of versions for a package.
+    max_versions: the maximum number of versions for a package.
+    random_select: the number of packages to randomly select.
     '''
 
-    # Initialize the list of packages
-    selected = []
+    # Create a logger
+    log = logging.getLogger(__name__)
 
-    # Open the input and output files
-    with open(input_path, 'r') as input_file:
+    # Get the artifacts from PyPI with the specified date range
+    log.debug('Collecting all PyPI versions inside the date range.')
+    versions = None
+    with input_conn:
+        curr = input_conn.cursor()
+        curr.execute(
+            '''
+                SELECT DISTINCT v.*
+                FROM artifacts a
+                JOIN versions v ON a.version_id = v.id
+                JOIN packages p ON v.package_id = p.id
+                WHERE p.registry_id = ?
+                AND a.date
+                BETWEEN ? AND ?
+            ''',
+            (
+                Registry.PYPI,
+                min_date,
+                max_date
+            )
+        )
+        versions = curr.fetchall()
 
-        # Iterate over the lines in the input file
-        for indx, line in enumerate(input_file):
+    # Filter the packages based on the number of versions
+    log.debug('Filtering packages based on the number of versions.')
 
-            # Log the progress
-            if indx % 1000 == 0:
-                log.info(f'Processing line {indx}')
+    # First we need to count how many versions exist inside of the date range
+    # for each package
+    pv_link = {}
 
-            # Load the line as JSON
-            package = json.loads(line)
+    # Iterate through versions
+    for version in versions:
 
-            # Check if the package has enough versions
-            if package['num_versions'] < min_versions:
-                continue
+        # Get the package id
+        package_id = version[1]
 
-            # Check if we have a min_date, if so filter the versions
-            if min_date is not None:
+        # If the package id is not in the dictionary, add it
+        if package_id not in pv_link:
+            pv_link[package_id] = []
 
-                # Remove all files uploaded before min_date
-                for version_name, version in package['versions'].items():
-                    package['versions'][version_name] = {
-                        file_hash: file for file_hash, file
-                        in version.items()
-                        if datetime.strptime(
-                            # Truncate the upload time to the second, this is
-                            # necessary but kind of a hack
-                            file['upload_time'][0:19],
-                            '%Y-%m-%d %H:%M:%S'
-                        ) >= min_date
-                    }
+        # Add the version to the list of versions for the package
+        pv_link[package_id].append(version)
 
-                # Remove all empty versions
-                package['versions'] = {
-                    version_name: version for version_name, version
-                    in package['versions'].items()
-                    if version
-                }
+    # Filter the packages based on the number of versions
+    pv_link = {
+        package_id: versions for package_id, versions in pv_link.items()
+        if min_versions <= len(versions) <= max_versions
+    }
 
-                # update the number of versions and check if the package still
-                # has enough versions
-                package['num_versions'] = len(package['versions'])
-                if package['num_versions'] < min_versions:
-                    continue
+    # Randomly select packages if needed
+    if random_select != -1:
+        log.debug('Randomly selecting packages.')
 
-            # Add the package to the list
-            selected.append(package)
+        # Randomly select N packages
+        selected = random.sample(pv_link.keys(), random_select)
 
-    # Log length of list
-    log.info(f'Length after filter: {len(selected)}')
+        # Filter the packages based on the selected packages
+        pv_link = {
+            package_id: versions for package_id, versions in pv_link.items()
+            if package_id in selected
+        }
 
-    # If random_select is -1, set it to the length of the list
-    if random_select == -1:
-        random_select = len(selected)
+    # Get a list of selected packages
+    selected_packages = []
+    log.debug('Collecting selected pacakges.')
+    with input_conn:
+        curr = input_conn.cursor()
 
-    # Randomly select the packages
-    selected = random.sample(selected, random_select)
+        for package_id in pv_link.keys():
+            curr.execute(
+                '''
+                    SELECT *
+                    FROM packages
+                    WHERE id = ?
+                ''',
+                (package_id,)
+            )
+            selected_packages.append(curr.fetchone())
 
-    # Log length of list
-    log.info(f'Length after sample: {len(selected)}')
+    # Clear the output database for PyPI
+    log.debug('Cleaning the output database.')
+    clean_db(output_conn, Registry.PYPI)
 
-    # Write the packages to the output file
-    with open(output_path, 'w') as output_file:
-        for package in selected:
-            json.dump(package, output_file)
-            output_file.write('\n')
+    # Update selected packages with version count
+    log.debug('Updating selected packages with version count.')
+    for package in selected_packages:
+        new_package = list(package)
+        new_package[3] = len(pv_link[package[0]])
+        package = tuple(new_package)
+
+    # Insert selected packages into the output database
+    log.debug('Inserting selected packages into the output database.')
+    with output_conn:
+        curr = output_conn.cursor()
+        curr.executemany(
+            '''
+                INSERT INTO packages (
+                    id, name, registry_id, versions_count, latest_release_date,
+                    first_release_date, downloads, downloads_period
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            selected_packages
+        )
+
+    # Insert selected versions into the outpt database
+    log.debug('Inserting selected versions into the output database.')
+
+    # Get the selected versions
+    selected_versions = [v for versions in pv_link.values() for v in versions]
+
+    # Insert the selected versions
+    with output_conn:
+        curr = output_conn.cursor()
+        curr.executemany(
+            '''
+                INSERT INTO versions (id, package_id, name, date)
+                VALUES (?, ?, ?, ?)
+            ''',
+            selected_versions
+        )
+
+    # Get selected artifacts
+    log.debug('Collecting selected artifacts.')
+    selected_artifacts = []
+    with input_conn:
+        curr = input_conn.cursor()
+
+        for version in selected_versions:
+            curr.execute(
+                '''
+                    SELECT *
+                    FROM artifacts
+                    WHERE version_id = ?
+                    AND date BETWEEN ? AND ?
+                ''',
+                (
+                    version[0],
+                    min_date,
+                    max_date
+                )
+            )
+            selected_artifacts.extend([a for a in curr.fetchall()])
+
+    # Insert selected artifacts
+    log.debug('Inserting selected artifacts.')
+    with output_conn:
+        curr = output_conn.cursor()
+        curr.executemany(
+            '''
+                INSERT INTO artifacts (id, version_id, name, type, has_sig,
+                digest, date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''',
+            selected_artifacts
+        )

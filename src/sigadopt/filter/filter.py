@@ -47,19 +47,43 @@ class Filter(Stage):
         '''
         This function gets the packages from Docker Hub.
         '''
-        pass
+        docker_filter(
+            input_conn=self.input_conn,
+            output_conn=self.output_conn,
+            min_date=self.args.min_date,
+            max_date=self.args.max_date,
+            min_versions=self.args.min_versions,
+            max_versions=self.args.max_versions,
+            random_select=self.args.random_select
+        )
 
     def maven(self):
         '''
         This function gets the packages from Maven.
         '''
-        pass
+        maven_filter(
+            input_conn=self.input_conn,
+            output_conn=self.output_conn,
+            min_date=self.args.min_date,
+            max_date=self.args.max_date,
+            min_versions=self.args.min_versions,
+            max_versions=self.args.max_versions,
+            random_select=self.args.random_select
+        )
 
     def pypi(self):
         '''
         This function gets the packages from PyPI.
         '''
-        pass
+        pypi_filter(
+            input_conn=self.input_conn,
+            output_conn=self.output_conn,
+            min_date=self.args.min_date,
+            max_date=self.args.max_date,
+            min_versions=self.args.min_versions,
+            max_versions=self.args.max_versions,
+            random_select=self.args.random_select
+        )
 
     def run(self):
         '''

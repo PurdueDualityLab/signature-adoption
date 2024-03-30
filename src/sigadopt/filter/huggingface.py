@@ -94,19 +94,21 @@ def filter(
         }
 
     # Get a list of selected packages
-    selected_packages = None
+    selected_packages = []
     log.debug('Collecting selected pacakges.')
     with input_conn:
         curr = input_conn.cursor()
-        curr.execute(
-            '''
-                SELECT *
-                FROM packages
-                WHERE id IN (?)
-            ''',
-            (pv_link.keys(),)
-        )
-        selected_packages = curr.fetchall()
+
+        for package_id in pv_link.keys():
+            curr.execute(
+                '''
+                    SELECT *
+                    FROM packages
+                    WHERE id = ?
+                ''',
+                (package_id,)
+            )
+            selected_packages.append(curr.fetchone())
 
     # Clear the output database for Hugging Face
     log.debug('Cleaning the output database.')
@@ -114,7 +116,39 @@ def filter(
 
     # Update selected packages with version count
     log.debug('Updating selected packages with version count.')
+    for package in selected_packages:
+        new_package = list(package)
+        new_package[3] = len(pv_link[package[0]])
+        package = tuple(new_package)
 
     # Insert selected packages into the output database
+    log.debug('Inserting selected packages into the output database.')
+    with output_conn:
+        curr = output_conn.cursor()
+        curr.executemany(
+            '''
+                INSERT INTO packages (
+                    id, name, registry_id, versions_count, latest_release_date,
+                    first_release_date, downloads, downloads_period
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            selected_packages
+        )
 
-    # Insert selected versions into the output database
+    # Insert selected versions into the outpt database
+    log.debug('Inserting selected versions into the output database.')
+
+    # Get the selected versions
+    selected_versions = [v for versions in pv_link.values() for v in versions]
+
+    # Insert the selected versions
+    with output_conn:
+        curr = output_conn.cursor()
+        curr.executemany(
+            '''
+                INSERT INTO versions (id, package_id, name, date)
+                VALUES (?, ?, ?, ?)
+            ''',
+            selected_versions
+        )
