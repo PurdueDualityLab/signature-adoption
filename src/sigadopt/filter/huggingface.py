@@ -77,7 +77,8 @@ def filter(
     # Filter the packages based on the number of versions
     pv_link = {
         package_id: versions for package_id, versions in pv_link.items()
-        if min_versions <= len(versions) <= max_versions
+        if (min_versions <= len(versions) if min_versions else True) and
+        (len(versions) <= max_versions if max_versions else True)
     }
 
     # Randomly select packages if needed

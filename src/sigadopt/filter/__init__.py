@@ -83,6 +83,22 @@ def add_maven_args(registry_parser):
 
     # Add Maven specific arguments
 
+def add_all_args(registry_parser):
+    '''
+    This function creates and adds arguments to the All subparser.
+
+    registry_parser: The subparser for the stage.
+    '''
+
+    # All subparser
+    all_parser = registry_parser.add_parser(
+        'all',
+        help='Filter packages from all registries.'
+    )
+
+    # Set the function to use in the stage class
+    all_parser.set_defaults(reg_func=Filter.all)
+
 
 def add_arguments(top_parser):
     '''
@@ -118,9 +134,9 @@ def add_arguments(top_parser):
         dest='max_date',
         metavar='YYYY-MM-DD',
         type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
-        default=None,
+        default=datetime.now(),
         help='The maximum date of the package and its versions/artifacts. In '
-        'the format YYYY-MM-DD. If not provided, no maximum date.'
+        'the format YYYY-MM-DD. If not provided, defaults to today.'
     )
     parser.add_argument(
         '--min-date',
@@ -128,9 +144,9 @@ def add_arguments(top_parser):
         dest='min_date',
         metavar='YYYY-MM-DD',
         type=lambda s: datetime.strptime(s, '%Y-%m-%d'),
-        default=None,
+        default=datetime.fromtimestamp(0),
         help='The minimum date of the package and its versions/artifacts. In '
-        'the format YYYY-MM-DD. If not provided, no minimum date.'
+        'the format YYYY-MM-DD. If not provided, defaults to epoch.'
     )
     parser.add_argument(
         '--random-select',
@@ -180,3 +196,4 @@ def add_arguments(top_parser):
     add_pypi_args(registry_parser)
     add_docker_args(registry_parser)
     add_maven_args(registry_parser)
+    add_all_args(registry_parser)

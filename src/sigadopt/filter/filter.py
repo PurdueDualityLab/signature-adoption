@@ -85,6 +85,15 @@ class Filter(Stage):
             random_select=self.args.random_select
         )
 
+    def all(self):
+        '''
+        This function gets the packages from all registries.
+        '''
+        self.huggingface()
+        self.docker()
+        self.maven()
+        self.pypi()
+
     def run(self):
         '''
         This function runs the stage.
