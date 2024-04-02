@@ -9,6 +9,7 @@ import argparse
 from sigadopt.util.files import path_create
 from sigadopt.packages import add_arguments as packages_add_arguments
 from sigadopt.filter import add_arguments as filter_add_arguments
+from sigadopt.adoption import add_arguments as adoption_add_arguments
 
 # Author information
 __author__ = 'Taylor R. Schorlemmer'
@@ -87,3 +88,4 @@ pipeline_stage_parser = parser.add_subparsers(
 )
 packages_add_arguments(pipeline_stage_parser)
 filter_add_arguments(pipeline_stage_parser)
+adoption_add_arguments(pipeline_stage_parser)
