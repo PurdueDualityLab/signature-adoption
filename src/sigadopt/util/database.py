@@ -21,6 +21,21 @@ class Registry(IntEnum):
     PYPI = 4
 
 
+class SignatureStatus(IntEnum):
+    '''
+    This is an enum to represent the status of a PGP signature.
+    '''
+    GOOD = 1
+    NO_SIG = 2
+    BAD_SIG = 3
+    EXP_SIG = 4
+    EXP_PUB = 5
+    NO_PUB = 6
+    REV_PUB = 7
+    BAD_PUB = 8
+    OTHER = 9
+
+
 def clean_db(conn, registry_id, level=0):
     '''
     This function cleans the database for the selected registry.
@@ -113,32 +128,35 @@ def init_db(db_conn):
             );
             '''
         )
-        db_conn.execute(
+        db_conn.executemany(
             '''
-            INSERT OR IGNORE INTO registries (name)
-            VALUES ('Hugging Face');
-            '''
-        )
-        db_conn.execute(
-            '''
-            INSERT OR IGNORE INTO registries (name)
-            VALUES ('Docker Hub');
-            '''
-        )
-        db_conn.execute(
-            '''
-            INSERT OR IGNORE INTO registries (name)
-            VALUES ('Maven Central');
-            '''
-        )
-        db_conn.execute(
-            '''
-            INSERT OR IGNORE INTO registries (name)
-            VALUES ('PyPI');
-            '''
+            INSERT OR IGNORE INTO registries (id, name)
+            VALUES (?, ?);
+            ''',
+            [(reg, reg.name) for reg in Registry]
         )
 
-    # Create package table
+    # Create sig_status table
+    log.debug('Creating sig_status table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS sig_status (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                UNIQUE (name)
+            );
+            '''
+        )
+        db_conn.executemany(
+            '''
+            INSERT OR IGNORE INTO sig_status (id, name)
+            VALUES (?, ?);
+            ''',
+            [(status, status.name) for status in SignatureStatus]
+        )
+
+        # Create package table
     log.debug('Creating package table if it does not exist.')
     with db_conn:
         db_conn.execute(
@@ -187,8 +205,77 @@ def init_db(db_conn):
                 has_sig INTEGER NOT NULL,
                 digest TEXT,
                 date TEXT,
+                extensions TEXT,
                 UNIQUE (version_id, name),
                 FOREIGN KEY (version_id) REFERENCES versions (id)
+            );
+            '''
+        )
+
+    # Create signature table
+    log.debug('Creating signature table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS signatures (
+                id INTEGER PRIMARY KEY,
+                artifact_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                raw BLOB,
+                UNIQUE (artifact_id),
+                FOREIGN KEY (artifact_id) REFERENCES artifacts (id)
+            );
+            '''
+        )
+
+    # Create sig_check table
+    log.debug('Creating sig_check table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS sig_check (
+                id INTEGER PRIMARY KEY,
+                signature_id INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                raw TEXT,
+                UNIQUE (signature_id),
+                FOREIGN KEY (signature_id) REFERENCES signatures (id)
+            );
+            '''
+        )
+
+    # Table to hold output from gpg list_packets
+    log.debug('Creating list_packets table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS list_packets (
+                id INTEGER PRIMARY KEY,
+                signature_id INTEGER NOT NULL,
+                algo TEXT,
+                digest_algo TEXT,
+                data INTEGER,
+                key_id TEXT,
+                created INTEGER,
+                expires INTEGER,
+                raw TEXT,
+                UNIQUE (signature_id),
+                FOREIGN KEY (signature_id) REFERENCES signatures (id)
+            );
+            '''
+        )
+
+    # Table to hold list of keys
+    log.debug('Creating pgp_keys table if it does not exist.')
+    with db_conn:
+        db_conn.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS pgp_keys (
+                id INTEGER PRIMARY KEY,
+                key_id TEXT NOT NULL,
+                keyserver TEXT,
+                raw TEXT,
+                UNIQUE (key_id)
             );
             '''
         )

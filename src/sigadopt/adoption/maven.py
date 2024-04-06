@@ -1,21 +1,16 @@
-#!/usr/bin/env python
-
 '''
-adoption.py: This script checks the adoption of signatures for packages from
+maven.py: This script checks the adoption of signatures for packages from
 Maven Central.
 '''
 
 # Imports
-import json
 import subprocess
 import requests
-import logging as log
+import logging
 from bs4 import BeautifulSoup
 
-
-# Author information
-__author__ = 'Taylor R. Schorlemmer and Andy Ko'
-__email__ = 'tschorle@purdue.edu'
+# Create a logger
+log = logging.getLogger(__name__)
 
 
 def download_file(remote_file_url, local_file_path):
@@ -217,72 +212,19 @@ def check_signatures(package, download_dir, save_sigs, save_units, only_sigs):
     return package
 
 
-def adoption(input_file_path, output_file_path, download_dir, start, stop,
-             save_sigs, save_units, only_sigs):
+def adoption(database, version):
     '''
     This function checks the adoption of signatures for packages from Maven
-    Central. It takes a newline delimited JSON file and outputs a newline
-    delimited JSON file with the signatures added.
+    Central for a single version.
 
-    input_file_path: the path to the input file.
-    output_file_path: the path to the output file.
-    download_dir: the path to the directory to download files to.
-    start: the line number to start at.
-    stop: the line number to stop at. If -1, go to the end of the file.
-    save_sigs: whether to save the signatures.
-    save_units: whether to save the units.
-    only_sigs: whether to only get signatures.
-
-    returns: None.
+    database: the database to use.
+    version: the version to check. (package_id, package_name, version_id,
+    version_name)
     '''
 
-    # Log start of script and open files
-    log.info('Checking signature adoption for Maven Central packages.')
-    log.info(f'Input file: {input_file_path}')
-    log.info(f'Output file: {output_file_path}')
-    log.info(f'Download directory: {download_dir}')
-    log.info(f'Start: {start}')
-    log.info(f'Stop: {stop}')
-
-    with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'w') as output_file:
-
-        # Read input file
-        for indx, line in enumerate(input_file):
-
-            # Check if we are in the range
-            if indx < start:
-                continue
-            if indx >= stop and stop != -1:
-                break
-
-            # Parse line
-            package = json.loads(line)
-
-            # Log progress
-            if indx % 100 == 0:
-                log.info(f'Processing package number {indx}: '
-                         f'{package["name"]}')
-            else:
-                log.debug(f'Processing package number {indx}: '
-                          f'{package["name"]}')
-
-            # Check signatures
-            package_and_signatures = check_signatures(
-                package,
-                download_dir,
-                save_sigs,
-                save_units,
-                only_sigs
-            )
-
-            # Write to file
-            log.debug('Writing to file')
-            json.dump(obj=package_and_signatures,
-                      fp=output_file,
-                      default=str)
-            output_file.write('\n')
-            output_file.flush()  # force write to disk
-
-    log.info('Finished checking adoption of signatures for packages from '
-             'Maven Central.')
+    # Get all artifacts for the version
+    version_url = 'https://repo1.maven.org/maven2/' + \
+        f'{version[1].split(":")[0].replace(".", "/")}/' + \
+        f'{version[1].split(":")[1]}/' + \
+        f'{version[3]}'
+    files = get_files(version_url)

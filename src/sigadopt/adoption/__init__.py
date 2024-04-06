@@ -3,9 +3,9 @@ __init__.py: This is the __init__ file for the adoption subpackage.
 '''
 
 # Imports
-from datetime import datetime
 from sigadopt.adoption.adoption import Adoption
 from sigadopt.util.files import path_exists, path_create
+from sigadopt.util.database import Registry
 
 
 def add_hf_args(registry_parser):
@@ -22,9 +22,15 @@ def add_hf_args(registry_parser):
     )
 
     # Set the function to use in the stage class
-    huggingface_parser.set_defaults(reg_func=Adoption.huggingface)
+    huggingface_parser.set_defaults(registry_id=Registry.HUGGINGFACE)
 
     # Add Hugging Face specific arguments
+    huggingface_parser.add_argument(
+        'download_dir',
+        metavar='DIR',
+        type=lambda x: path_create(x, is_dir=True),
+        help='The path to the directory to download files to.'
+    )
 
 
 def add_pypi_args(registry_parser):
@@ -41,9 +47,15 @@ def add_pypi_args(registry_parser):
     )
 
     # Set the function to use in the stage class
-    pypi_parser.set_defaults(reg_func=Adoption.pypi)
+    pypi_parser.set_defaults(registry_id=Registry.PYPI)
 
     # Add PyPI specific arguments
+    pypi_parser.add_argument(
+        'download_dir',
+        metavar='DIR',
+        type=lambda x: path_create(x, is_dir=True),
+        help='The path to the directory to download files to.'
+    )
 
 
 def add_docker_args(registry_parser):
@@ -60,7 +72,7 @@ def add_docker_args(registry_parser):
     )
 
     # Set the function to use in the stage class
-    docker_parser.set_defaults(reg_func=Adoption.docker)
+    docker_parser.set_defaults(registry_id=Registry.DOCKER)
 
     # Add PyPI specific arguments
 
@@ -79,9 +91,15 @@ def add_maven_args(registry_parser):
     )
 
     # Set the function to use in the stage class
-    maven_parser.set_defaults(reg_func=Adoption.maven)
+    maven_parser.set_defaults(registry_id=Registry.MAVEN)
 
     # Add Maven specific arguments
+    maven_parser.add_argument(
+        'download_dir',
+        metavar='DIR',
+        type=lambda x: path_create(x, is_dir=True),
+        help='The path to the directory to download files to.'
+    )
 
 
 def add_arguments(top_parser):
@@ -99,19 +117,34 @@ def add_arguments(top_parser):
 
     # Add stage specific arguments
     parser.add_argument(
-        'input',
-        metavar='INPUT_DB',
-        type=path_exists,
-        help='The path to the input databse file.'
+        'database',
+        metavar='DATABASE',
+        type=path_create,
+        help='The path to the database file. Will modify this file.'
     )
     parser.add_argument(
-        'output',
-        metavar='OUTPUT_DB',
-        type=path_create,
-        help='The path to the output database file. This can be set to the '
-        'input database file to overwrite the input database file. Clears the '
-        'output database file for the selected registry before copying.'
+        '--start',
+        '-s',
+        type=int,
+        default=0,
+        help='The start index for the packages to check. Defaults to 0. '
+        'Inclusive.'
     )
+    parser.add_argument(
+        '--stop',
+        '-e',
+        type=int,
+        default=-1,
+        help='The stop index for the packages to check. If set to -1, goes to '
+        'the end of the file. Defaults to -1. Exclusive.'
+    )
+    parser.add_argument(
+        '--update',
+        '-u',
+        action='store_true',
+        help='Update table entries if they already exist in the database.'
+    )
+
     # Give the parser a stage class to use
     parser.set_defaults(stage=Adoption)
 
