@@ -5,11 +5,56 @@ files.py: This script contains utility functions for file handling.
 # Import statements
 from pathlib import Path
 from argparse import ArgumentError
+import requests
 import logging
 import os
 
 # Create a logger
 log = logging.getLogger(__name__)
+
+
+def download_file(remote_file_url, local_file_path):
+    '''
+    This function downloads a file to a local path using requests.
+
+    remote_file_url: url of file to download.
+    local_file_path: path to save file to.
+
+    returns: Binary of file if successful, None otherwise.
+    '''
+    response = requests.get(remote_file_url)
+
+    if not response:
+        log.error(f'Could not download file {remote_file_url}.')
+        return None
+    if response.status_code != 200:
+        log.error(f'Could not download file {remote_file_url}. '
+                  f'Code: {response.status_code}')
+        return None
+
+    # Write the file
+    with open(local_file_path, "wb") as local_file:
+        local_file.write(response.content)
+    local_file.close()
+
+    # Return binary of file is downloaded
+    return response.content
+
+
+def remove_file(file_path):
+    '''
+    This function removes a file.
+
+    file_path: the path to the file.
+
+    returns: None
+    '''
+    try:
+        Path(file_path).unlink()
+        log.debug(f'Removed file {file_path}.')
+    except Exception as e:
+        log.error(f'Could not remove file {file_path}.')
+        log.error(e)
 
 
 def path_exists(path, dir=False):
@@ -72,6 +117,7 @@ def path_create(path, dir=False):
 
         # Catch exceptions
         except Exception as e:
+            print('owch')
             log.error(e)
             log.error(f'{path} is not writable! Exiting!')
             exit(-1)
@@ -85,6 +131,10 @@ def path_create(path, dir=False):
             None, f'Path {path} is a file! It should be a directory!')
 
     return path
+
+
+def dir_create(path):
+    return path_create(path, dir=True)
 
 
 # Function to ensure an argument path is valid

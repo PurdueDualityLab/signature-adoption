@@ -51,7 +51,7 @@ class Adoption(Stage):
 
         version: The version to get the package for.
         '''
-        pass
+        maven_adoption(self.database, self.args.download_dir, version)
 
     def pypi(self, version):
         '''
@@ -130,6 +130,5 @@ class Adoption(Stage):
             reg_func(version)
 
         # Close the databases
-        self.log.info('Adoption stage complete. Closing databases.')
-        self.input_conn.close()
-        self.output_conn.close()
+        self.log.info('Adoption stage complete. Closing database.')
+        self.database.close()

@@ -235,11 +235,12 @@ def init_db(db_conn):
             '''
             CREATE TABLE IF NOT EXISTS sig_check (
                 id INTEGER PRIMARY KEY,
-                signature_id INTEGER NOT NULL,
-                status TEXT NOT NULL,
+                artifact_id INTEGER NOT NULL,
+                status INTEGER NOT NULL,
                 raw TEXT,
-                UNIQUE (signature_id),
-                FOREIGN KEY (signature_id) REFERENCES signatures (id)
+                UNIQUE (artifact_id),
+                FOREIGN KEY (artifact_id) REFERENCES artifacts (id)
+                FOREIGN KEY (status) REFERENCES sig_status (id)
             );
             '''
         )

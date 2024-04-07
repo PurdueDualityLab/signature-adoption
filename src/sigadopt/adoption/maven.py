@@ -4,112 +4,149 @@ Maven Central.
 '''
 
 # Imports
-import subprocess
 import requests
 import logging
 from bs4 import BeautifulSoup
+from sigadopt.util.files import download_file, remove_file
+from sigadopt.util.database import SignatureStatus
+from sigadopt.util.pgp import list_packets, get_key, verify, parse_verify
 
 # Create a logger
 log = logging.getLogger(__name__)
 
 
-def download_file(remote_file_url, local_file_path):
-    """
-    This function downloads a file to a local path using wget.
+def insert_artifacts(database, artifacts):
+    '''
+    This function inserts an artifacts into the database.
 
-    remote_file_url: url of file to download.
-    local_file_path: path to save file to.
+    database: the database to use.
+    artifacts: the artifacts to insert. Add the id to the end of each list.
+    '''
 
-    returns: True if file is downloaded, False otherwise.
-    """
-    response = requests.get(remote_file_url)
+    with database:
+        # Create the cursor
+        cursor = database.cursor()
 
-    if not response:
-        log.error(f'Could not download file {remote_file_url}.')
-        return False
-    if response.status_code != 200:
-        log.error(f'Could not download file {remote_file_url}. '
-                  f'Code: {response.status_code}')
-        return False
-
-    # Write the file
-    with open(local_file_path, "wb") as local_file:
-        local_file.write(response.content)
-    local_file.close()
-
-    # Return True if file is downloaded
-    return True
+        # Insert the artifact
+        for a in artifacts:
+            cursor.execute(
+                '''
+                INSERT INTO artifacts
+                (version_id, name, type, has_sig, extensions)
+                VALUES (?, ?, ?, ?, ?)
+                ''',
+                a
+            )
+            a.append(cursor.lastrowid)
 
 
-def check_file(version_url, file_name, extensions, download_path,
-               save_sigs, save_units, only_sigs):
+def insert_signatures(database, artifacts):
+    '''
+    This function inserts signatures into the database.
+
+    database: the database to use.
+    artifacts: the artifacts to insert. Add the id to the end of each list.
+    '''
+
+    with database:
+        # Create the cursor
+        cursor = database.cursor()
+
+        # Insert the signature
+        for a in artifacts:
+            if not a[3]:
+                continue
+            cursor.execute(
+                '''
+                INSERT INTO signatures
+                (artifact_id, type, raw)
+                VALUES (?, ?, ?)
+                ''',
+                [a[5], 'PGP', a[6]]
+            )
+            a.append(cursor.lastrowid)
+
+
+def check_artifacts(artifacts, download_path, database):
     '''
     This function checks the adoption of signatures for a file from Maven
     Central.
 
-    version_url: the URL for the package version.
-    file_name: the name of the file to check.
-    extensions: all of the extensions for the file.
+    artifacts: the artifact to check.
     download_path: the path to the directory to download files to.
-    save_sigs: whether to save the signatures.
-    save_units: whether to save the units.
-    only_sigs: whether to only get signatures.
-
-    returns: The results of a GPG check.
+    database: the database to use.
     '''
 
-    # Construct the url
-    file_url = version_url + '/' + file_name
-    log.debug(f'Checking file {file_url}.')
+    all_checks = []
+    all_packets = []
+    all_keys = {}
 
-    # check for a signature file
-    if '.asc' not in extensions:
-        return None, None
+    # Iterate through the artifacts
+    for artifact in artifacts:
 
-    # Create the signature path
-    signature_path = download_path + file_name + '.asc'
-    log.debug(f'Signature path: {signature_path}')
+        # Check if we have a signature
+        if not artifact[3]:
+            all_checks.append((artifact[5], SignatureStatus.NO_SIG, None))
+            continue
 
-    # Get the signature ensure file is downloaded
-    if not download_file(file_url+'.asc', signature_path):
-        log.warning(f'Could not download signature {file_url}.asc.')
-        return None, None
+        # list packets
+        packets = list_packets(download_path / (artifact[1] + '.asc'))
+        all_packets.append((artifact[7],) + packets)
 
-    # If we are only getting signatures, return
-    if only_sigs:
-        return None, None
+        # Get the public key if we can find it
+        keyserver, key_output = get_key(packets[4])
+        if packets[4] not in all_keys:
+            all_keys[packets[4]] = (keyserver, key_output)
 
-    # Create the file path
-    file_path = download_path + file_name
-    log.debug(f'File path: {file_path}')
+        # Check if we have a key
+        if not keyserver:
+            all_checks.append((artifact[5], SignatureStatus.NO_PUB, None))
+            continue
 
-    # Get the file ensure file is downloaded
-    if not download_file(file_url, file_path):
-        log.warning(f'Could not download file {file_url}.')
-        return None, None
+        # Check the signature
+        verify_output = verify(
+            download_path + artifact[1],
+            download_path + (artifact[1] + '.asc')
+        )
 
-    # Run the gpg verify command
-    output = subprocess.run(
-        [
-            "gpg",
-            "--keyserver-options",
-            "auto-key-retrieve",
-            "--keyserver",
-            "keyserver.ubuntu.com",
-            "--verify",
-            "--verbose",
-            f"{signature_path}",
-            f"{file_path}"
-        ],
-        capture_output=True)
+        # Parse the output
+        status = parse_verify(verify_output)
+        all_checks.append((artifact[5], status, verify_output))
 
-    # Remove the files if we are not saving them
-    if not save_units:
-        subprocess.run(['rm', '-r', file_path])
-    if not save_sigs:
-        subprocess.run(['rm', '-r', signature_path])
+    # Insert the things
+    with database:
+        cursor = database.cursor()
 
-    return output.stdout.decode('utf-8'), output.stderr.decode('utf-8')
+        # Insert the checks
+        cursor.executemany(
+            '''
+            INSERT INTO sig_check
+            (artifact_id, status, raw)
+            VALUES (?, ?, ?)
+            ''',
+            all_checks
+        )
+
+        # Insert the packets
+        cursor.executemany(
+            '''
+            INSERT INTO list_packets
+            (signature_id, algo, digest_algo, data, key_id, created, expires,
+            raw)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            all_packets
+        )
+
+        # Insert the keys
+        cursor.executemany(
+            '''
+            INSERT OR IGNORE INTO pgp_keys
+            (key_id, keyserver, raw)
+            VALUES (?, ?, ?)
+            ''',
+            [(k, v[0], v[1]) for k, v in all_keys.items()]
+        )
 
 
 def get_files(version_url):
@@ -155,72 +192,57 @@ def get_files(version_url):
     return file_extensions
 
 
-def check_signatures(package, download_dir, save_sigs, save_units, only_sigs):
+def already_artifacted(database, version_id):
     '''
-    This function gets the signatures for a package from Maven Central.
+    This function checks if we already have artifacts for a version.
 
-    package: the package to get the signatures for.
-    download_dir: the path to the directory to download files to.
-    save_sigs: whether to save the signatures.
-    save_units: whether to save the units.
-    only_sigs: whether to only get signatures.
+    database: the database to use.
+    version_id: the version id to check.
 
-    returns: the package with the signatures added.
+    returns: True if this version already has artifacts, False otherwise.
     '''
 
-    # Maven Central URL
-    maven_central_url = 'https://repo1.maven.org/maven2/'
+    # Assume we don't have artifacts
+    artifacted = False
 
-    # Parse package name
-    package_name = package['name']
-    package_name = package_name.split(':')[0].replace('.', '/') + '/' + \
-        package_name.split(':')[1]
+    with database:
+        # Create the cursor
+        cursor = database.cursor()
 
-    # Iterate through versions
-    for version in package['versions']:
-        version_number = version['number']
+        # Execute the query
+        cursor.execute(
+            '''
+            SELECT COUNT(*)
+            FROM artifacts
+            WHERE version_id = ?
+            ''',
+            (version_id,)
+        )
 
-        # Construct the url and get the files
-        version_url = maven_central_url + package_name + '/' + version_number
-        files = get_files(version_url)
+        # Fetch the data
+        count = cursor.fetchone()[0]
 
-        version['files'] = []
+        # Return True if we have artifacts, False otherwise
+        artifacted = count > 0
 
-        # Check for files
-        if files is None:
-            log.warning(f'Could not get files for {version_url}.')
-            continue
-
-        # Iterate through files
-        for file_name, extensions in files.items():
-
-            stdout, stderr = check_file(version_url,
-                                        file_name,
-                                        extensions,
-                                        download_dir,
-                                        save_sigs,
-                                        save_units,
-                                        only_sigs)
-            version['files'].append({
-                'name': file_name,
-                'extensions': extensions,
-                'has_signature': '.asc' in extensions,
-                'stdout': stdout,
-                'stderr': stderr
-            })
-
-    return package
+    return artifacted
 
 
-def adoption(database, version):
+def adoption(database, download_dir, version):
     '''
     This function checks the adoption of signatures for packages from Maven
     Central for a single version.
 
     database: the database to use.
+    download_dir: the path to the directory to download files to.
     version: the version to check. (package_id, package_name, version_id,
     version_name)
     '''
+
+    # Check if we have any artifacts already in the database for this version
+    if already_artifacted(database, version[2]):
+        log.debug(f'Already have artifacts for {version[1]} {version[3]}.')
+        return
 
     # Get all artifacts for the version
     version_url = 'https://repo1.maven.org/maven2/' + \
@@ -228,3 +250,37 @@ def adoption(database, version):
         f'{version[1].split(":")[1]}/' + \
         f'{version[3]}'
     files = get_files(version_url)
+
+    # create the artifact list
+    artifacts = [[version[2], file, 'file', 1 if '.asc' in extensions else 0,
+                  ';'.join(extensions)] for file, extensions in files.items()]
+
+    # Insert the artifacts into the database
+    insert_artifacts(database, artifacts)
+
+    # Download all file-signature pairs
+    for artifact in artifacts:
+        if not artifact[3]:
+            continue
+        download_file(
+            version_url + '/' + artifact[1],
+            download_dir / artifact[1]
+        )
+        sig_binary = download_file(
+            version_url + '/' + artifact[1] + '.asc',
+            download_dir / (artifact[1] + '.asc')
+        )
+        artifact.append(sig_binary)
+
+    # Insert the signatures
+    insert_signatures(database, artifacts)
+
+    # Check signatures for each artifact
+    check_artifacts(artifacts, download_dir, database)
+
+    # Remove the files
+    for artifact in artifacts:
+        if not artifact[3]:
+            continue
+        remove_file(download_dir / artifact[1])
+        remove_file(download_dir / (artifact[1] + '.asc'))

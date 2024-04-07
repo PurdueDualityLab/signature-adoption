@@ -4,7 +4,7 @@ __init__.py: This is the __init__ file for the adoption subpackage.
 
 # Imports
 from sigadopt.adoption.adoption import Adoption
-from sigadopt.util.files import path_exists, path_create
+from sigadopt.util.files import path_exists, path_create, dir_create
 from sigadopt.util.database import Registry
 
 
@@ -28,7 +28,7 @@ def add_hf_args(registry_parser):
     huggingface_parser.add_argument(
         'download_dir',
         metavar='DIR',
-        type=lambda x: path_create(x, is_dir=True),
+        type=dir_create,
         help='The path to the directory to download files to.'
     )
 
@@ -53,7 +53,7 @@ def add_pypi_args(registry_parser):
     pypi_parser.add_argument(
         'download_dir',
         metavar='DIR',
-        type=lambda x: path_create(x, is_dir=True),
+        type=dir_create,
         help='The path to the directory to download files to.'
     )
 
@@ -97,7 +97,7 @@ def add_maven_args(registry_parser):
     maven_parser.add_argument(
         'download_dir',
         metavar='DIR',
-        type=lambda x: path_create(x, is_dir=True),
+        type=dir_create,
         help='The path to the directory to download files to.'
     )
 
@@ -119,7 +119,7 @@ def add_arguments(top_parser):
     parser.add_argument(
         'database',
         metavar='DATABASE',
-        type=path_create,
+        type=path_exists,
         help='The path to the database file. Will modify this file.'
     )
     parser.add_argument(
@@ -139,10 +139,10 @@ def add_arguments(top_parser):
         'the end of the file. Defaults to -1. Exclusive.'
     )
     parser.add_argument(
-        '--update',
-        '-u',
+        '--clear',
+        '-c',
         action='store_true',
-        help='Update table entries if they already exist in the database.'
+        help='Clear the adoption data before starting. Defaults to False.'
     )
 
     # Give the parser a stage class to use

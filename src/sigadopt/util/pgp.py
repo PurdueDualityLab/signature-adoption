@@ -19,7 +19,7 @@ keyservers = [
 ]
 
 
-def parse_verify_output(output):
+def parse_verify(output):
     '''
     This function parses the output of the gpg verify command and returns the
     signature status.
@@ -99,11 +99,11 @@ def list_packets(signature_path):
 
     signature_path: The path to the signature file.
 
-    returns: (output, algo, digest_algo, data, key_id, created, expires)
+    returns: (algo, digest_algo, data, key_id, created, expires, raw)
     '''
 
     # Run the gpg list_packets command
-    output = subprocess.run(
+    raw = subprocess.run(
         [
             'gpg',
             '--list-packets',
@@ -122,12 +122,12 @@ def list_packets(signature_path):
     exp_regex = re.compile(r'sig expires')
 
     # Find matches in the string
-    algo_match = algo_regex.search(output)
-    created_match = created_regex.search(output)
-    digest_match = digest_regex.search(output)
-    data_match = data_regex.search(output)
-    keyid_match = keyid_regex.search(output)
-    exp_match = exp_regex.search(output)
+    algo_match = algo_regex.search(raw)
+    created_match = created_regex.search(raw)
+    digest_match = digest_regex.search(raw)
+    data_match = data_regex.search(raw)
+    keyid_match = keyid_regex.search(raw)
+    exp_match = exp_regex.search(raw)
 
     # Extract the matched groups
     algo = algo_match.group(1) if algo_match else None
@@ -137,7 +137,7 @@ def list_packets(signature_path):
     keyid = keyid_match.group(1) if keyid_match else None
     expires = 1 if exp_match else 0
 
-    return output, algo, digest_algo, data, keyid, created, expires
+    return (algo, digest_algo, data, keyid, created, expires, raw)
 
 
 def get_key(key_id):
