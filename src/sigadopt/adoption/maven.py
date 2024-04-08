@@ -94,9 +94,9 @@ def check_artifacts(artifacts, download_path, database):
         all_packets.append((artifact[7],) + packets)
 
         # Get the public key if we can find it
-        keyserver, key_output = get_key(packets[4])
-        if packets[4] not in all_keys:
-            all_keys[packets[4]] = (keyserver, key_output)
+        keyserver, key_output = get_key(packets[3])
+        if packets[3] not in all_keys:
+            all_keys[packets[3]] = (keyserver, key_output)
 
         # Check if we have a key
         if not keyserver:
@@ -105,8 +105,8 @@ def check_artifacts(artifacts, download_path, database):
 
         # Check the signature
         verify_output = verify(
-            download_path + artifact[1],
-            download_path + (artifact[1] + '.asc')
+            download_path / artifact[1],
+            download_path / (artifact[1] + '.asc')
         )
 
         # Parse the output

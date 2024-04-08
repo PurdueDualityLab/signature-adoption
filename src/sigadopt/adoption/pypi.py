@@ -1,78 +1,18 @@
-#!/usr/bin/env python
-
-'''adoption.py: This script checks the adoption of signatures for packages from
+'''
+adoption.py: This script checks the adoption of signatures for packages from
 PyPI.
 '''
 
-import json
-import subprocess
+# Imports
 import requests
-import logging as log
-import os
+import logging
+from bs4 import BeautifulSoup
+from sigadopt.util.files import download_file, remove_file
+from sigadopt.util.database import SignatureStatus
+from sigadopt.util.pgp import list_packets, get_key, verify, parse_verify
 
-
-# Author information
-__author__ = 'Taylor R. Schorlemmer and Rajeev Sashti'
-__email__ = 'tschorle@purdue.edu'
-
-
-def gpg_verify(file_path: str, signature_path: str) -> (str, str):
-    '''
-    This function runs the gpg verify command on a file and signature.
-
-    file_path: The path to the file to verify.
-    signature_path: The path to the signature.
-
-    return: The stdout and stderr of the gpg verify command.
-    '''
-
-    # Run the gpg verify command
-    output = subprocess.run(
-        [
-            "gpg",
-            "--keyserver-options",
-            "auto-key-retrieve",
-            "--keyserver",
-            "keyserver.ubuntu.com",
-            "--verify",
-            "--verbose",
-            f"{signature_path}",
-            f"{file_path}"
-        ],
-        capture_output=True)
-
-    # Return the stdout and stderr
-    return output.stdout.decode('utf-8'), output.stderr.decode('utf-8')
-
-
-def download_file(remote_file_url: str, local_file_path: str) -> bool:
-    '''
-    This function downloads a file to a local path using requests.
-
-    remote_file_url: url of file to download.
-    local_file_path: path to save file to.
-
-    returns: True if file is downloaded, False otherwise.
-    '''
-
-    # Download the file
-    response = requests.get(remote_file_url)
-
-    # Check if the file was downloaded
-    if not response:
-        log.warning(f'Could not download file {remote_file_url}.')
-        return False
-    if response.status_code != 200:
-        log.warning(f'Could not download file {remote_file_url}.')
-        log.warning(f'Code: {response.status_code}')
-        return False
-
-    # Write the file
-    with open(local_file_path, "wb") as local_file:
-        local_file.write(response.content)
-
-    # Return True if file is downloaded
-    return True
+# Create a logger
+log = logging.getLogger(__name__)
 
 
 def url_construction(digest: str, filename: str) -> str:

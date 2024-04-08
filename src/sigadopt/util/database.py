@@ -36,6 +36,16 @@ class SignatureStatus(IntEnum):
     OTHER = 9
 
 
+class CleanLevel(IntEnum):
+    '''
+    This is an enum to represent the level of cleaning to perform.
+    '''
+    PACKAGES = 0
+    VERSIONS = 1
+    ARTIFACTS = 2
+    SIGNATURES = 3
+
+
 def clean_db(conn, registry_id, level=0):
     '''
     This function cleans the database for the selected registry.
@@ -50,7 +60,50 @@ def clean_db(conn, registry_id, level=0):
     log.debug(f'Cleaning database for registry: {registry_id} level: {level}')
     with conn:
         curr = conn.cursor()
-        if level <= 2:
+        if level <= CleanLevel.SIGNATURES:
+            curr.execute(
+                '''
+                DELETE FROM list_packets
+                WHERE signature_id IN (
+                    SELECT id FROM signatures WHERE artifact_id IN (
+                        SELECT id FROM artifacts WHERE version_id IN (
+                            SELECT id FROM versions WHERE package_id IN (
+                                SELECT id FROM packages WHERE registry_id = ?
+                            )
+                        )
+                    )
+                );
+                ''',
+                (registry_id,)
+            )
+            curr.execute(
+                '''
+                DELETE FROM signatures
+                WHERE artifact_id IN (
+                    SELECT id FROM artifacts WHERE version_id IN (
+                        SELECT id FROM versions WHERE package_id IN (
+                            SELECT id FROM packages WHERE registry_id = ?
+                        )
+                    )
+                );
+                ''',
+                (registry_id,)
+            )
+            curr.execute(
+                '''
+                DELETE FROM sig_check
+                WHERE artifact_id IN (
+                    SELECT id FROM artifacts WHERE version_id IN (
+                        SELECT id FROM versions WHERE package_id IN (
+                            SELECT id FROM packages WHERE registry_id = ?
+                        )
+                    )
+                );
+                ''',
+                (registry_id,)
+            )
+
+        if level <= CleanLevel.ARTIFACTS:
             curr.execute(
                 '''
                 DELETE FROM artifacts
@@ -63,7 +116,7 @@ def clean_db(conn, registry_id, level=0):
                 (registry_id,)
             )
 
-        if level <= 1:
+        if level <= CleanLevel.VERSIONS:
             curr.execute(
                 '''
                 DELETE FROM versions WHERE package_id IN (
@@ -73,7 +126,7 @@ def clean_db(conn, registry_id, level=0):
                 (registry_id,)
             )
 
-        if level == 0:
+        if level == CleanLevel.PACKAGES:
             curr.execute(
                 f'DELETE FROM packages WHERE registry_id = {registry_id};'
             )
@@ -94,7 +147,7 @@ def connect_db(db_path):
     # Connect to the database
     conn = None
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path, timeout=30)
     except sqlite3.Error as e:
         log.error(f'Error connecting to the database: {e}')
         exit(-1)

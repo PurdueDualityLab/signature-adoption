@@ -5,7 +5,8 @@ registries.
 
 # Imports
 import logging
-from sigadopt.util.database import connect_db, init_db, Registry
+from sigadopt.util.database import connect_db, init_db, clean_db, Registry, \
+    CleanLevel
 from sigadopt.util.stage import Stage
 from sigadopt.adoption.huggingface import adoption as huggingface_adoption
 from sigadopt.adoption.docker import adoption as docker_adoption
@@ -107,6 +108,21 @@ class Adoption(Stage):
         # Ensure the input/output database is available
         self.database = connect_db(self.args.database)
         init_db(self.database)
+
+        # If cleaning the database, do so
+        if self.args.clean:
+            if self.args.registry_id is not Registry.PYPI:
+                clean_db(
+                    self.database,
+                    self.args.registry_id,
+                    CleanLevel.ARTIFACTS
+                )
+            else:
+                clean_db(
+                    self.database,
+                    self.args.registry_id,
+                    CleanLevel.SIGNATURES
+                )
 
         # Get a list of all versions for the registry
         self.log.info('Getting list of all versions for the registry.')
