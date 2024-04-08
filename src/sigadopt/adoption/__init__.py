@@ -139,10 +139,10 @@ def add_arguments(top_parser):
         'the end of the file. Defaults to -1. Exclusive.'
     )
     parser.add_argument(
-        '--clear',
+        '--clean',
         '-c',
         action='store_true',
-        help='Clear the adoption data before starting. Defaults to False.'
+        help='Clean the adoption data before starting. Defaults to False.'
     )
 
     # Give the parser a stage class to use
@@ -155,7 +155,7 @@ def add_arguments(top_parser):
         help='The registry to check adoption on.',
         dest='registry',
         metavar='REGISTRY',
-        required=True
+        # required=True
     )
 
     # Add subparser specific arguments
