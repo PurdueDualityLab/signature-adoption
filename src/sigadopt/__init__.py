@@ -29,7 +29,7 @@ logging.config.dictConfig(
         },
         "handlers": {
             "stderr": {
-                "level": "WARNING",
+                "level": "INFO",
                 "formatter": "standard",
                 "class": "logging.StreamHandler"
             },
