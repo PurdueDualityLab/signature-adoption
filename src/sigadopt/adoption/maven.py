@@ -8,11 +8,53 @@ import requests
 import logging
 from bs4 import BeautifulSoup
 from sigadopt.util.files import download_file, remove_file
-from sigadopt.util.database import SignatureStatus
+from sigadopt.util.database import SignatureStatus, Registry
 from sigadopt.util.pgp import list_packets, get_key, verify, parse_verify
 
 # Create a logger
 log = logging.getLogger(__name__)
+
+
+def get_versions(database, start, stop):
+    '''
+    This function gets a list of all versions in the start stop range for
+    the selected registry.
+
+    database: the database to use.
+    start: the start index.
+    stop: the stop index.
+
+    returns: A list of all versions in the start stop range in the selected
+    registry.
+    '''
+
+    # Initialize the versions list
+    versions = None
+
+    # Create the cursor
+    with database:
+        curr = database.cursor()
+
+        # Execute the query
+        curr.execute(
+            '''
+                SELECT p.id, p.name, v.id, v.name
+                FROM packages p
+                JOIN versions v ON p.id = v.package_id
+                WHERE registry_id = ?;
+            ''',
+            (Registry.MAVEN,)
+        )
+
+        # Fetch the data
+        versions = curr.fetchall()
+        log.debug(f'Found {len(versions)} versions for the registry.')
+
+    # Subset versions in the start stop range
+    versions = versions[start:stop]
+
+    # Return the versions
+    return versions
 
 
 def insert_artifacts(database, artifacts):
@@ -228,59 +270,75 @@ def already_artifacted(database, version_id):
     return artifacted
 
 
-def adoption(database, download_dir, version):
+def adoption(database, download_dir, start, stop):
     '''
     This function checks the adoption of signatures for packages from Maven
     Central for a single version.
 
     database: the database to use.
     download_dir: the path to the directory to download files to.
-    version: the version to check. (package_id, package_name, version_id,
-    version_name)
+    start: the start index.
+    stop: the stop index.
     '''
+    # Get a list of all versions for the registry
+    log.info('Getting list of all versions for the registry.')
+    versions = get_versions(database, start, stop)
+    num_selected = len(versions)
+    log.info(f'Selected {num_selected} versions for the registry.')
 
-    # Check if we have any artifacts already in the database for this version
-    if already_artifacted(database, version[2]):
-        log.debug(f'Already have artifacts for {version[1]} {version[3]}.')
-        return
+    # Loop through the versions
+    for indx, version in enumerate(versions):
+        log.info(f'Processing version {indx} of {num_selected}.')
 
-    # Get all artifacts for the version
-    version_url = 'https://repo1.maven.org/maven2/' + \
-        f'{version[1].split(":")[0].replace(".", "/")}/' + \
-        f'{version[1].split(":")[1]}/' + \
-        f'{version[3]}'
-    files = get_files(version_url)
-
-    # create the artifact list
-    artifacts = [[version[2], file, 'file', 1 if '.asc' in extensions else 0,
-                  ';'.join(extensions)] for file, extensions in files.items()]
-
-    # Insert the artifacts into the database
-    insert_artifacts(database, artifacts)
-
-    # Download all file-signature pairs
-    for artifact in artifacts:
-        if not artifact[3]:
+        # Check if we have any artifacts already for this version
+        if already_artifacted(database, version[2]):
+            log.debug(f'Already have artifacts for {version[1]} {version[3]}.')
             continue
-        download_file(
-            version_url + '/' + artifact[1],
-            download_dir / artifact[1]
-        )
-        sig_binary = download_file(
-            version_url + '/' + artifact[1] + '.asc',
-            download_dir / (artifact[1] + '.asc')
-        )
-        artifact.append(sig_binary)
 
-    # Insert the signatures
-    insert_signatures(database, artifacts)
+        # Get all artifacts for the version
+        version_url = 'https://repo1.maven.org/maven2/' + \
+            f'{version[1].split(":")[0].replace(".", "/")}/' + \
+            f'{version[1].split(":")[1]}/' + \
+            f'{version[3]}'
+        files = get_files(version_url)
 
-    # Check signatures for each artifact
-    check_artifacts(artifacts, download_dir, database)
+        # create the artifact list
+        artifacts = [
+            [
+                version[2],
+                file,
+                'file',
+                1 if '.asc' in extensions else 0,
+                ';'.join(extensions)
+            ] for file, extensions in files.items()
+        ]
 
-    # Remove the files
-    for artifact in artifacts:
-        if not artifact[3]:
-            continue
-        remove_file(download_dir / artifact[1])
-        remove_file(download_dir / (artifact[1] + '.asc'))
+        # Insert the artifacts into the database
+        insert_artifacts(database, artifacts)
+
+        # Download all file-signature pairs
+        for artifact in artifacts:
+            if not artifact[3]:
+                continue
+            download_file(
+                version_url + '/' + artifact[1],
+                download_dir / artifact[1]
+            )
+            sig_binary = download_file(
+                version_url + '/' + artifact[1] + '.asc',
+                download_dir / (artifact[1] + '.asc')
+            )
+            artifact.append(sig_binary)
+
+        # Insert the signatures
+        insert_signatures(database, artifacts)
+
+        # Check signatures for each artifact
+        check_artifacts(artifacts, download_dir, database)
+
+        # Remove the files
+        for artifact in artifacts:
+            if not artifact[3]:
+                continue
+            remove_file(download_dir / artifact[1])
+            remove_file(download_dir / (artifact[1] + '.asc'))

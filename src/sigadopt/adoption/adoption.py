@@ -30,7 +30,7 @@ class Adoption(Stage):
         self.args = args
         self.log.debug(f'{self.args=}')
 
-    def huggingface(self, version):
+    def huggingface(self):
         '''
         This function gets the packages from Hugging Face.
 
@@ -38,7 +38,7 @@ class Adoption(Stage):
         '''
         pass
 
-    def docker(self, version):
+    def docker(self):
         '''
         This function gets the packages from Docker Hub.
 
@@ -46,58 +46,31 @@ class Adoption(Stage):
         '''
         pass
 
-    def maven(self, version):
+    def maven(self):
         '''
         This function gets the packages from Maven.
 
         version: The version to get the package for.
         '''
-        maven_adoption(self.database, self.args.download_dir, version)
+        maven_adoption(
+            self.database,
+            self.args.download_dir,
+            self.args.start,
+            self.args.stop
+        )
 
-    def pypi(self, version):
+    def pypi(self):
         '''
         This function gets the packages from PyPI.
 
         version: The version to get the package for.
         '''
-        pass
-
-    def get_versions(self):
-        '''
-        This function gets a list of all versions in the start stop range for
-        the selected registry.
-
-        returns: A list of all versions in the start stop range in the selected
-        registry.
-        '''
-
-        # Initialize the versions list
-        versions = None
-
-        # Create the cursor
-        with self.database:
-            curr = self.database.cursor()
-
-            # Execute the query
-            curr.execute(
-                '''
-                    SELECT p.id, p.name, v.id, v.name
-                    FROM packages p
-                    JOIN versions v ON p.id = v.package_id
-                    WHERE registry_id = ?;
-                ''',
-                (self.args.registry_id,)
-            )
-
-            # Fetch the data
-            versions = curr.fetchall()
-            self.log.debug(f'Found {len(versions)} versions for the registry.')
-
-        # Subset versions in the start stop range
-        versions = versions[self.args.start:self.args.stop]
-
-        # Return the versions
-        return versions
+        pypi_adoption(
+            self.database,
+            self.args.download_dir,
+            self.args.start,
+            self.args.stop
+        )
 
     def run(self):
         '''
@@ -124,12 +97,6 @@ class Adoption(Stage):
                     CleanLevel.SIGNATURES
                 )
 
-        # Get a list of all versions for the registry
-        self.log.info('Getting list of all versions for the registry.')
-        versions = self.get_versions()
-        num_selected = len(versions)
-        self.log.info(f'Selected {num_selected} versions for the registry.')
-
         # Get the registry function
         reg_func = {
             Registry.HUGGINGFACE: self.huggingface,
@@ -138,11 +105,7 @@ class Adoption(Stage):
             Registry.PYPI: self.pypi,
         }
         reg_func = reg_func[self.args.registry_id]
-
-        # Loop through the versions
-        for indx, version in enumerate(versions):
-            self.log.info(f'Processing version {indx} of {num_selected}.')
-            reg_func(version)
+        reg_func()
 
         # Close the databases
         self.log.info('Adoption stage complete. Closing database.')

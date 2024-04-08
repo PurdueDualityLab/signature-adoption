@@ -4,11 +4,9 @@ PyPI.
 '''
 
 # Imports
-import requests
 import logging
-from bs4 import BeautifulSoup
 from sigadopt.util.files import download_file, remove_file
-from sigadopt.util.database import SignatureStatus
+from sigadopt.util.database import SignatureStatus, Registry
 from sigadopt.util.pgp import list_packets, get_key, verify, parse_verify
 
 # Create a logger
@@ -34,128 +32,264 @@ def url_construction(digest: str, filename: str) -> str:
     return url
 
 
-def adoption(input_file_path, output_file_path, download_dir, start, stop,
-             save_sigs, save_units, only_sigs):
+def get_artifacts(database, start, stop):
     '''
-    This function checks the adoption of signatures for packages from
-    PyPI. It takes a newline delimited JSON file and outputs a newline
-    delimited JSON file with the signatures added.
+    This function gets the artifacts for a version.
 
-    input_file_path: the path to the input file.
-    output_file_path: the path to the output file.
-    download_dir: the directory to download the files to.
-    start: the line number to start at.
-    stop: the line number to stop at. If -1, go to the end of the file.
-    save_sigs: whether to save the signatures.
-    save_units: whether to save the units.
-    only_sigs: whether to only get signatures.
+    database: the database to use.
 
-    returns: None.
+    return: the artifacts for the version that have not been checked yet.
+            id, version_id, name, type, has_sig, digest, date, extensions.
     '''
 
-    # Log start of script and open files
-    log.info('Checking adoption of signatures for packages from PyPI.')
-    log.info(f'Input file: {input_file_path}')
-    log.info(f'Output file: {output_file_path}')
-    log.info(f'Download directory: {download_dir}')
-    log.info(f'Start: {start}')
-    log.info(f'Stop: {stop}')
+    # Get the artifacts for the version
+    artifacts = None
+    with database:
+        cursor = database.cursor()
 
-    with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'w') as output_file:
+        # Ensure non-signed artifacts have a sig_check
+        cursor.execute(
+            '''
+            INSERT OR IGNORE INTO sig_check
+            (artifact_id, status, raw)
+            SELECT a.id, ?, ?
+            FROM artifacts a
+            JOIN versions v ON a.version_id = v.id
+            JOIN packages p ON v.package_id = p.id
+            WHERE p.registry_id = ?
+            AND a.has_sig = 0
+            ''',
+            (SignatureStatus.NO_SIG, None, Registry.PYPI)
+        )
 
-        # Read input file
-        for indx, line in enumerate(input_file):
+        # Find signed artifacts
+        cursor.execute(
+            '''
+            SELECT a.*
+            FROM artifacts a
+            JOIN versions v ON a.version_id = v.id
+            JOIN packages p ON v.package_id = p.id
+            WHERE p.registry_id = ?
+            AND a.has_sig = 1
+            ''',
+            (Registry.PYPI,)
+        )
+        artifacts = cursor.fetchall()
 
-            # Check if we are in the range
-            if indx < start:
+        # Log the number of artifacts
+        log.debug(f'Found {len(artifacts)} artifacts with signatures for '
+                  'PyPI.')
+
+        # Subset
+        artifacts = artifacts[start:stop]
+
+    return artifacts
+
+
+def insert_signatures(database, artifacts):
+    '''
+    This function inserts signatures into the database.
+
+    database: the database to use.
+    artifacts: the artifacts to insert. Add the id to the end of each list.
+    '''
+
+    with database:
+        # Create the cursor
+        cursor = database.cursor()
+
+        # Insert the signature
+        for a in artifacts:
+            if not a[4]:
                 continue
-            if indx >= stop and stop != -1:
-                break
+            cursor.execute(
+                '''
+                INSERT INTO signatures
+                (artifact_id, type, raw)
+                VALUES (?, ?, ?)
+                ''',
+                [a[0], 'PGP', a[8]]
+            )
+            a.append(cursor.lastrowid)
 
-            # Log progress
-            if indx % 100 == 0:
-                log.info(f'Processing package {indx}.')
-            else:
-                log.debug(f'Processing package {indx}.')
 
-            # Parse line
-            package = json.loads(line)
+def check_artifacts(artifacts, download_path, database):
+    '''
+    This function checks the adoption of signatures for a file from Maven
+    Central.
 
-            # Iterate through versions
-            for version_name, files in package['versions'].items():
+    artifacts: the artifact to check.
+    download_path: the path to the directory to download files to.
+    database: the database to use.
+    '''
 
-                # Iterate through files
-                for file in files.values():
+    all_checks = []
+    all_packets = []
+    all_keys = {}
 
-                    # Add placeholder for signature adoption
-                    file['signature'] = None
+    # Iterate through the artifacts
+    for artifact in artifacts:
 
-                    # Check if the package has a signature
-                    if file['has_signature']:
+        # Check if we have a signature
+        if not artifact[4]:
+            all_checks.append((artifact[0], SignatureStatus.NO_SIG, None))
+            continue
 
-                        # Create url and local file name
-                        filename = file['filename']
-                        local_file_path = os.path.join(download_dir, filename)
-                        url = url_construction(
-                            digest=file['blake2_256_digest'],
-                            filename=filename
-                        )
+        # list packets
+        packets = list_packets(download_path / (artifact[2] + '.asc'))
+        all_packets.append((artifact[9],) + packets)
 
-                        # Download the signature
-                        dl_sign = download_file(
-                            remote_file_url=url+'.asc',
-                            local_file_path=local_file_path+'.asc'
-                        )
+        # Get the public key if we can find it
+        keyserver, key_output = get_key(packets[3])
+        if packets[3] not in all_keys:
+            all_keys[packets[3]] = (keyserver, key_output)
 
-                        # Check if the signature was downloaded
-                        if not dl_sign:
-                            log.warning(
-                                f'Missing sig, skipping ver.: {version_name}'
-                            )
+        # Check if we have a key
+        if not keyserver:
+            all_checks.append((artifact[0], SignatureStatus.NO_PUB, None))
+            continue
 
-                        # If we are only getting signatures, continue
-                        if only_sigs:
-                            continue
+        # Check the signature
+        verify_output = verify(
+            download_path / artifact[2],
+            download_path / (artifact[2] + '.asc')
+        )
 
-                        # Download the file
-                        dl_file = download_file(
-                            remote_file_url=url,
-                            local_file_path=local_file_path
-                        )
+        # Parse the output
+        status = parse_verify(verify_output)
+        all_checks.append((artifact[0], status, verify_output))
 
-                        # Check if the file was downloaded
-                        if not dl_file:
-                            log.warning(
-                                f'Missing file, skipping ver.: {version_name}'
-                            )
+    # Insert the things
+    with database:
+        cursor = database.cursor()
 
-                        # Verify the signature
-                        stdout, stderr = gpg_verify(
-                            file_path=local_file_path,
-                            signature_path=local_file_path+'.asc'
-                        )
+        # Insert the checks
+        cursor.executemany(
+            '''
+            INSERT INTO sig_check
+            (artifact_id, status, raw)
+            VALUES (?, ?, ?)
+            ''',
+            all_checks
+        )
 
-                        # Add signature adoption to package
-                        file['signature'] = {
-                            'stdout': stdout,
-                            'stderr': stderr
-                        }
+        # Insert the packets
+        cursor.executemany(
+            '''
+            INSERT INTO list_packets
+            (signature_id, algo, digest_algo, data, key_id, created, expires,
+            raw)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            all_packets
+        )
 
-                        # Remove the files if not saving
-                        if not save_units:
-                            subprocess.run(['rm',
-                                            '-r',
-                                            local_file_path])
-                        if not save_sigs:
-                            subprocess.run(['rm',
-                                            '-r',
-                                            local_file_path+'.asc'])
+        # Insert the keys
+        cursor.executemany(
+            '''
+            INSERT OR IGNORE INTO pgp_keys
+            (key_id, keyserver, raw)
+            VALUES (?, ?, ?)
+            ''',
+            [(k, v[0], v[1]) for k, v in all_keys.items()]
+        )
 
-            # Write package to output file
-            log.debug(f'Writing package {indx} to file.')
-            json.dump(package, output_file, default=str)
-            output_file.write('\n')
 
-    log.info('Finished checking adoption of signatures for packages from '
-             'PyPI.')
+def already_checked(database, artifact_id):
+    '''
+    This function checks if an artifact has already been checked.
+
+    database: the database to use.
+    artifact_id: the artifact to check.
+
+    return: True if the artifact has already been checked, False otherwise.
+    '''
+
+    checked = False
+
+    with database:
+        cursor = database.cursor()
+
+        cursor.execute(
+            '''
+            SELECT *
+            FROM sig_check
+            WHERE artifact_id = ?
+            ''',
+            (artifact_id,)
+        )
+
+        checked = cursor.fetchone() is not None
+
+    return checked
+
+
+def adoption(database, download_dir, start, stop, batch_size=25):
+    '''
+    This function checks the adoption of signatures for packages from PyPI.
+
+    database: the database to use.
+    download_dir: the path to the directory to download files to.
+    start: the start artifact.
+    stop: the stop artifact.
+    batch_size: the number of artifacts to check at once.
+    '''
+
+    # Get artifacts for the version
+    log.info('Getting artifacts for PyPI.')
+    artifacts = get_artifacts(database, start, stop)
+    num_selected = len(artifacts)
+    log.info(f'Selected {num_selected} artifacts for the registry.')
+
+    # Split the artifacts into batches
+    batches = [
+        artifacts[i:i+batch_size]
+        for i in range(0, len(artifacts), batch_size)
+    ]
+    log.info(f'Split artifacts into {len(batches)} batches.')
+
+    # Iterate through the batches
+    for indx, batch in enumerate(batches):
+        log.info(f'Checking batch {indx+1} of {len(batches)}.')
+
+        batch = [list(a) for a in batch]
+
+        # Download all file-signature pairs
+        for artifact in batch:
+
+            if already_checked(database, artifact[0]):
+                continue
+
+            # Convert the artifact to a list so we can append the signature
+
+            # Create url and local file name
+            url = url_construction(
+                digest=artifact[5],
+                filename=artifact[2]
+            )
+
+            # Download the file and signature
+            download_file(
+                remote_file_url=url,
+                local_file_path=download_dir / artifact[2]
+            )
+            sig_binary = download_file(
+                remote_file_url=url+'.asc',
+                local_file_path=download_dir / (artifact[2] + '.asc')
+            )
+
+            # Add the signature to the artifact
+            artifact.append(sig_binary)
+
+        # Insert the signatures
+        insert_signatures(database, batch)
+
+        # Check signatures for each artifact
+        check_artifacts(batch, download_dir, database)
+
+        # Remove the files
+        for artifact in batch:
+            if not artifact[4]:
+                continue
+            remove_file(download_dir / artifact[2])
+            remove_file(download_dir / (artifact[2] + '.asc'))
