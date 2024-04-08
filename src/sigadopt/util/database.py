@@ -147,7 +147,7 @@ def connect_db(db_path):
     # Connect to the database
     conn = None
     try:
-        conn = sqlite3.connect(db_path, timeout=30)
+        conn = sqlite3.connect(db_path, timeout=120)
     except sqlite3.Error as e:
         log.error(f'Error connecting to the database: {e}')
         exit(-1)
