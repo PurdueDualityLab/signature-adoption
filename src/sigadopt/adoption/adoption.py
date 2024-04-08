@@ -141,8 +141,7 @@ class Adoption(Stage):
 
         # Loop through the versions
         for indx, version in enumerate(versions):
-            if indx % 100 == 0:
-                self.log.debug(f'Processing version {indx} of {num_selected}.')
+            self.log.info(f'Processing version {indx} of {num_selected}.')
             reg_func(version)
 
         # Close the databases
