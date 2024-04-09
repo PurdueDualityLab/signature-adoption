@@ -36,7 +36,11 @@ class Adoption(Stage):
 
         version: The version to get the package for.
         '''
-        pass
+        huggingface_adoption(
+            self.database,
+            self.args.start,
+            self.args.stop
+        )
 
     def docker(self):
         '''

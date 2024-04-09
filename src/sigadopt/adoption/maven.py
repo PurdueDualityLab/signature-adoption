@@ -273,7 +273,7 @@ def already_artifacted(database, version_id):
 def adoption(database, download_dir, start, stop):
     '''
     This function checks the adoption of signatures for packages from Maven
-    Central for a single version.
+    Central.
 
     database: the database to use.
     download_dir: the path to the directory to download files to.

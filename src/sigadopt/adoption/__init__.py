@@ -25,12 +25,12 @@ def add_hf_args(registry_parser):
     huggingface_parser.set_defaults(registry_id=Registry.HUGGINGFACE)
 
     # Add Hugging Face specific arguments
-    huggingface_parser.add_argument(
-        'download_dir',
-        metavar='DIR',
-        type=dir_create,
-        help='The path to the directory to download files to.'
-    )
+    # huggingface_parser.add_argument(
+    #     'download_dir',
+    #     metavar='DIR',
+    #     type=dir_create,
+    #     help='The path to the directory to download files to.'
+    # )
 
 
 def add_pypi_args(registry_parser):

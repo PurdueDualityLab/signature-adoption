@@ -1,216 +1,200 @@
-#!/usr/bin/env python
-
 '''
-adoption.py: This script checks the adoption of signatures for packages from
+huggingface.py: This script checks the adoption of signatures for packages from
 Hugging Face.
 '''
 
 # Import statements
-import json
-import os
-import subprocess
-import shutil
-import tarfile
-import logging as log
-from git import Repo
+import requests
+import logging
+from bs4 import BeautifulSoup
+from sigadopt.util.database import SignatureStatus, Registry
 
-# authorship information
-__author__ = "Taylor R. Schorlemmer"
-__email__ = "tschorle@purdue.edu"
+# Create a logger
+log = logging.getLogger(__name__)
 
 
-def clone_repo(repo_url: str, repo_path: str) -> Repo:
+def get_commits_page(name, page=0):
     '''
-    This function clones a repository and returns the Repo object.
+    Get the commits page for a package and page number.
 
-    repo_url: The url of the repository.
-    repo_path: The path to the repository.
-
-    return: The Repo object. None if the repository could not be cloned.
+    name: the name of the package.
+    page: the page number.
     '''
+    url = f'https://huggingface.co/{name}/commits/main?p={page}'
+    r = requests.get(url)
 
-    # Create a placeholder Repo object
-    repo = None
+    if not r:
+        log.error(f'Failed to get commits for {name} page {page}.')
+        return None
+    if r.status_code != 200:
+        log.error(f'Failed to get commits for {name} page {page}.')
+        return None
 
-    # Try to clone the repository
-    log.debug(f'Cloning {repo_url} to {repo_path}.')
-    try:
-        repo = Repo.clone_from(repo_url, repo_path, bare=True)
-    except Exception as e:
-        log.warning(f'Could not clone {repo_url}!')
-        log.warning(e)
-
-    return repo
+    return r.text
 
 
-def check_commits(repo: Repo, repo_path: str) -> []:
+def get_commit_data(name):
     '''
-    This function checks the commits in a repository and returns a list of
-    dictionaries containing the commit information.
+    Get the commit data for a package.
 
-    repo: The Repo object.
-    repo_path: The path to the repository.
+    name: the name of the package.
 
-    return: A list of dictionaries containing the commit information.
+    returns: a dictionary of commit data.
     '''
+    commit_data = {}
+    page = 0
 
-    # Create a list to store commit data
-    commits_data = []
+    while True:
+        html = get_commits_page(name, page)
+        page += 1
+        if not html:
+            break
 
-    for commit in repo.iter_commits():
+        soup = BeautifulSoup(html, 'html.parser')
+        commit_elements = soup.find_all('article')
 
-        hexsha = commit.hexsha
-        commit_time = commit.committed_datetime.strftime(
-            "%Y-%m-%d %H:%M:%S")
-        commit_author = commit.author.name
+        # Iterate over all commits on the page
+        for commit_element in commit_elements:
 
-        # Verify the commit
-        command = ["git", "verify-commit", "--raw", hexsha]
-        output = subprocess.run(
-            command, cwd=repo_path, capture_output=True, text=True)
+            # Spans contain the hash and status
+            spans = commit_element.h3.find_all('span')
+            hash = spans[0].text.strip()
 
-        # Add commit to verification data
-        commits_data.append({
-            "hexsha": hexsha,
-            "time": commit_time,
-            "author": commit_author,
-            "signature": {
-                'stdout': output.stdout,
-                'stderr': output.stderr,
-            }
-        })
+            # If theres only 1 span, there is no signature
+            if len(spans) < 2:
+                commit_data[hash] = SignatureStatus.NO_SIG
+                continue
 
-    return commits_data
+            # Get the status
+            status_raw = spans[1].text.strip().lower()
+            status = SignatureStatus.GOOD if status_raw == 'verified' \
+                else SignatureStatus.BAD_SIG
+            commit_data[hash] = status
+
+        if len(commit_elements) < 50:
+            break
+
+    return commit_data
 
 
-def delete_repo(repo_path: str) -> None:
+def get_versions(database, start, stop):
     '''
-    This function deletes a repository.
+    This function gets a list of all versions in the start stop range for the
+    selected registry.
 
-    repo_path: The path to the repository.
+    database: the database to use.
+    start: the start index.
+    stop: the stop index.
 
-    return: None.
+    returns: A list of all versions in the start stop range in the selected
+    registry. (p.id, p.name, v.id, v.name)
     '''
+    # Initialize the packages list
+    versions = None
 
-    log.debug(f'Removing repository {repo_path}.')
-    try:
-        shutil.rmtree(repo_path)
-    except Exception as e:
-        log.warning(f'Could not remove {repo_path}!')
-        log.warning(e)
+    # Create the cursor
+    with database:
+        curr = database.cursor()
+
+        # Execute the query
+        curr.execute(
+            '''
+            SELECT p.id, p.name, v.id, v.name
+            FROM packages p
+            JOIN versions v ON p.id = v.package_id
+            WHERE registry_id = ?;
+            ''',
+            (Registry.HUGGINGFACE,)
+        )
+
+        # Fetch the data
+        versions = curr.fetchall()
+        log.debug(f'Found {len(versions)} versions for the registry.')
+
+    # Subset packages in the start stop range
+    versions = versions[start:stop]
+
+    # Return the packages
+    return versions
 
 
-def tar_repo(repo_path: str) -> None:
-    '''
-    This function creates a tar file of a repository.
-
-    repo_path: The path to the repository.
-
-    return: None.
-    '''
-
-    log.debug(f'Saving repository {repo_path} as a tar file.')
-    try:
-        tar_path = f'{repo_path}.tar'
-        tar = tarfile.open(tar_path, 'w')
-        tar.add(repo_path, arcname=os.path.basename(repo_path))
-        tar.close()
-    except Exception as e:
-        log.warning(f'Could not save {repo_path} as a tar file!')
-        log.warning(e)
-
-
-def adoption(
-    input_file_path: str,
-    output_file_path: str,
-    download_dir: str,
-    save: bool = False,
-    start: int = 0,
-    stop: int = -1,
-):
+def adoption(database, start, stop, batch_size=50):
     '''
     This function checks the adoption of signatures for packages from Hugging
-    Face. It takes a newline delimited JSON file and outputs a newline
-    delimited JSON file with the signatures added.
+    Face.
 
-    input_file_path: the path to the input file.
-
-    output_file_path: the path to the output file.
-
-    download_dir: the directory to download the files to.
-
-    save: whether or not to save the downloaded files. If so, they will be
-    saved in the download_dir and the folders will be turned into tar files.
-
-    start: the line number to start at.
-
-    stop: the line number to stop at. If -1, go to the end of the file.
-
-    returns: None.
+    database: the database to use.
+    start: the start index.
+    stop: the stop index.
+    batch_size: the number of packages to process at once.
     '''
 
-    # Log start of script and open files
-    log.info('Checking adoption of signatures for packages from Hugging Face.')
-    log.info(f'Input file: {input_file_path}')
-    log.info(f'Output file: {output_file_path}')
-    log.info(f'Download directory: {download_dir}')
-    log.info(f'Save: {save}')
-    log.info(f'Start: {start}')
-    log.info(f'Stop: {stop}')
+    # Get the packages
+    log.info('Getting versions from the database.')
+    versions = get_versions(database, start, stop)
+    log.info(f'Selected {len(versions)} versions.')
 
-    with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'w') as output_file:
+    # Create a dictionary for the packages
+    packages = {}
+    for version in versions:
+        pid, pname, vid, vname = version
+        if pid not in packages:
+            packages[pid] = {
+                'name': pname,
+                'versions': []
+            }
+        packages[pid]['versions'].append((vid, vname))
 
-        # Read input file
-        for indx, line in enumerate(input_file):
+    # Split the packages into batches
+    pid_batches = [
+        list(packages.keys())[i:i+batch_size]
+        for i in range(0, len(packages), batch_size)
+    ]
+    log.info(f'Split packages into {len(pid_batches)} batches.')
 
-            # Check if we are in the range
-            if indx < start:
-                continue
-            if indx >= stop and stop != -1:
-                break
+    # Iterate over the batches
+    for indx, batch in enumerate(pid_batches):
 
-            # Log progress
-            if indx % 100 == 0:
-                log.info(f'Processing package {indx}.')
-            else:
-                log.debug(f'Processing package {indx}.')
+        log.info(f'Processing batch {indx+1}/{len(pid_batches)}.')
 
-            # Parse line
-            package = json.loads(line)
+        artifacts = []
 
-            # Extract package information and create local name and repo path
-            model_id = package['id']
-            local_name = model_id.replace('/', '-')
-            repo_path = os.path.join(download_dir, local_name)
+        # Iterate over the packages
+        for pid in batch:
 
-            # Clone the repository
-            repo_url = f'git@hf.co:{model_id}'
-            repo = clone_repo(repo_url, repo_path)
+            # Get commit data
+            commit_data = get_commit_data(packages[pid]['name'])
 
-            # Check for a valid repository and check commits for signatures
-            commits_data = None
-            if repo is not None:
-                commits_data = check_commits(repo, repo_path)
+            # Iterate over the versions and match the commits
+            for vid, vname in packages[pid]['versions']:
+                status = commit_data.get(vname[:7], SignatureStatus.NO_SIG)
+                artifacts.append(
+                    [
+                        vid,
+                        vname,
+                        'GCS',
+                        status != SignatureStatus.NO_SIG,
+                        status,
+                    ]
+                )
 
-            # If no commits, log warning and continue
-            if commits_data is None:
-                log.warning(f'Skipping {model_id}.')
-                continue
+        # Insert the things
+        with database:
+            curr = database.cursor()
 
-            # Add signature adoption to package
-            package['commits'] = commits_data
-
-            # Write package to output file
-            json.dump(package, output_file, default=str)
-            output_file.write('\n')
-
-            # If save, save the repository as a tar file
-            if save:
-                tar_repo(repo_path)
-
-            # Delete the repository
-            delete_repo(repo_path)
-
-    log.info('Finished checking adoption of signatures for packages from '
-             'Hugging Face.')
+            for artifact in artifacts:
+                curr.execute(
+                    '''
+                    INSERT INTO artifacts (version_id, name, type, has_sig)
+                    VALUES (?, ?, ?, ?);
+                    ''',
+                    artifact[:4]
+                )
+                artifact_id = curr.lastrowid
+                curr.execute(
+                    '''
+                    INSERT INTO sig_check (artifact_id, status)
+                    VALUES (?, ?);
+                    ''',
+                    (artifact_id, artifact[4])
+                )
