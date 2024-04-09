@@ -41,6 +41,7 @@ def get_commit_data(name):
 
     returns: a dictionary of commit data.
     '''
+    log.debug(f'Getting commit data for {name}.')
     commit_data = {}
     page = 0
 
@@ -137,9 +138,9 @@ def already_processed(database, pid):
             FROM artifacts a
             JOIN versions v on a.version_id = v.id
             JOIN packages p on v.package_id = p.id
-            WHERE p.registry_id = ?;
+            WHERE p.registry_id = ? AND p.id = ?;
             ''',
-            (Registry.HUGGINGFACE,)
+            (Registry.HUGGINGFACE, pid)
         )
         processed = curr.fetchone() is not None
 
