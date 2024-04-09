@@ -48,7 +48,11 @@ class Adoption(Stage):
 
         version: The version to get the package for.
         '''
-        pass
+        docker_adoption(
+            self.database,
+            self.args.start,
+            self.args.stop
+        )
 
     def maven(self):
         '''

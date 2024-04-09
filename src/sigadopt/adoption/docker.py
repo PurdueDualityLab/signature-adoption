@@ -1,19 +1,16 @@
-#!/usr/bin/env python
-
 '''
-adoption.py: This script checks the adoption of signatures for packages from
+docker.py: This script checks the adoption of signatures for packages from
 Docker Hub.
 '''
 
 # Imports
 import json
 import subprocess
-import logging as log
+import logging
+from sigadopt.util.database import Registry, SignatureStatus
 
-
-# Author information
-__author__ = 'Taylor R. Schorlemmer'
-__email__ = 'tschorle@purdue.edu'
+# Set up logging
+log = logging.getLogger(__name__)
 
 
 def get_signatures(package_name):
@@ -24,7 +21,6 @@ def get_signatures(package_name):
 
     returns: the output of the docker trust inspect command.
     '''
-
     # Check to see if package has signatures
     output = subprocess.run(
         [
@@ -37,65 +33,136 @@ def get_signatures(package_name):
 
     return json.loads(output.stdout), output.stderr.decode("utf-8")
 
-
-def adoption(input_file_path, output_file_path, start, stop):
+def get_versions(database, start, stop):
     '''
-    This function checks the adoption of signatures for packages from Docker
-    Hub. It takes a newline delimited JSON file and outputs a newline
-    delimited JSON file with the signatures added.
+    This function gets a list of all versions in the start stop range for the
+    selected registry.
 
-    input_file_path: the path to the input file.
+    database: the database to use.
+    start: the start index.
+    stop: the stop index.
 
-    output_file_path: the path to the output file.
+    returns: A list of all versions in the start stop range in the selected
+    registry. (p.id, p.name, v.id, v.name)
+    '''
+    # Initialize the packages list
+    versions = None
 
-    start: the line to start processing at.
+    # Create the cursor
+    with database:
+        curr = database.cursor()
 
-    stop: the line to stop processing at.
+        # Execute the query
+        curr.execute(
+            '''
+            SELECT p.id, p.name, v.id, v.name
+            FROM packages p
+            JOIN versions v ON p.id = v.package_id
+            WHERE registry_id = ?;
+            ''',
+            (Registry.DOCKER,)
+        )
 
-    returns: None.
+        # Fetch the data
+        versions = curr.fetchall()
+        log.debug(f'Found {len(versions)} versions for the registry.')
+
+    # Subset packages in the start stop range
+    versions = versions[start:stop]
+
+    # Return the packages
+    return versions
+
+
+def adoption(database, start, stop, batch_size=50):
+    '''
+    This function checks the adoption of signatures for packages from Hugging
+    Face.
+
+    database: the database to use.
+    start: the start index.
+    stop: the stop index.
+    batch_size: the number of packages to process at once.
     '''
 
-    # Log start of script and open files
-    log.info('Checking adoption of signatures for packages from Docker Hub.')
-    log.info(f'Input file: {input_file_path}')
-    log.info(f'Output file: {output_file_path}')
-    log.info(f'Start: {start}')
-    log.info(f'Stop: {stop}')
+    # Get the packages
+    log.info('Getting versions from the database.')
+    versions = get_versions(database, start, stop)
+    log.info(f'Selected {len(versions)} versions.')
 
-    with open(input_file_path, 'r') as input_file, \
-            open(output_file_path, 'w') as output_file:
-
-        # Read input file
-        for indx, line in enumerate(input_file):
-
-            # Check if we are in the range
-            if indx < start:
-                continue
-            if indx >= stop and stop != -1:
-                break
-
-            # Log progress
-            if indx % 100 == 0:
-                log.info(f'Processing package {indx}.')
-            else:
-                log.debug(f'Processing package {indx}.')
-
-            # Parse line
-            package = json.loads(line)
-            package_name = package['name']
-
-            # Get package's signatures
-            signatures, stderr = get_signatures(package_name)
-
-            # Add signatures to package
-            package['signatures'] = {
-                'dct': signatures,
-                'stderr': stderr
+    # Create a dictionary for the packages
+    packages = {}
+    for version in versions:
+        pid, pname, vid, vname = version
+        if pid not in packages:
+            packages[pid] = {
+                'name': pname,
+                'versions': []
             }
+        packages[pid]['versions'].append((vid, vname))
 
-            # Write package to output file
-            json.dump(package, output_file, default=str)
-            output_file.write('\n')
+    # Split the packages into batches
+    pid_batches = [
+        list(packages.keys())[i:i+batch_size]
+        for i in range(0, len(packages), batch_size)
+    ]
+    log.info(f'Split packages into {len(pid_batches)} batches.')
 
-    log.info('Finished checking adoption of signatures for packages from '
-             'Docker Hub.')
+    # Iterate over the batches
+    for indx, batch in enumerate(pid_batches):
+
+        log.info(f'Processing batch {indx+1}/{len(pid_batches)}.')
+
+        artifacts = []
+
+        # Iterate over the packages
+        for pid in batch:
+
+            # Get the DCT data
+            json_data, _ = get_signatures(packages[pid]['name'])
+
+            # Iterate over the versions and match the commits
+            for vid, vname in packages[pid]['versions']:
+
+                # Find the signature
+                signature = None
+                if json_data:
+                    finder = (s for s in json_data[0]['SignedTags']
+                              if s['SignedTag'] == version['number'])
+                    signature = next(finder, None)
+
+                status = SignatureStatus.GOOD if signature \
+                    else SignatureStatus.NO_SIG
+                raw = json.dumps(signature) if signature else None
+
+                artifacts.append(
+                    [
+                        vid,
+                        vname,
+                        'tag',
+                        status != SignatureStatus.NO_SIG,
+                        status,
+                        raw,
+                    ]
+                )
+
+        # Insert the things
+        with database:
+            curr = database.cursor()
+
+            for artifact in artifacts:
+                curr.execute(
+                    '''
+                    INSERT INTO artifacts (version_id, name, type, has_sig)
+                    VALUES (?, ?, ?, ?);
+                    ''',
+                    artifact[:4]
+                )
+                artifact_id = curr.lastrowid
+                curr.execute(
+                    '''
+                    INSERT INTO sig_check (artifact_id, status, raw)
+                    VALUES (?, ?, ?);
+                    ''',
+                    (artifact_id, artifact[4], artifact[5])
+                )

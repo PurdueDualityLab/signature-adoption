@@ -4,7 +4,7 @@ __init__.py: This is the __init__ file for the adoption subpackage.
 
 # Imports
 from sigadopt.adoption.adoption import Adoption
-from sigadopt.util.files import path_exists, path_create, dir_create
+from sigadopt.util.files import path_exists, dir_create
 from sigadopt.util.database import Registry
 
 
