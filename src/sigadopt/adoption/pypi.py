@@ -131,7 +131,7 @@ def check_artifacts(artifacts, download_path, database):
     for artifact in artifacts:
 
         # Check if we have a signature
-        if not artifact[4]:
+        if not artifact[4] or not artifact[8]:
             all_checks.append((artifact[0], SignatureStatus.NO_SIG, None))
             continue
 
