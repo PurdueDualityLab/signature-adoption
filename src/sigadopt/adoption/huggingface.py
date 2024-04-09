@@ -139,7 +139,7 @@ def already_processed(database, pid):
             JOIN packages p on v.package_id = p.id
             WHERE p.registry_id = ?;
             ''',
-            (pid, Registry.HUGGINGFACE)
+            (Registry.HUGGINGFACE)
         )
         processed = curr.fetchone() is not None
 
