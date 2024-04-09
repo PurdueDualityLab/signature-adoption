@@ -118,6 +118,34 @@ def get_versions(database, start, stop):
     return versions
 
 
+def already_processed(database, pid):
+    '''
+    This function checks if a package has already been processed.
+
+    database: the database to use.
+    pid: the package id.
+
+    returns: True if the package has already been processed, False otherwise.
+    '''
+
+    processed = False
+    with database:
+        curr = database.cursor()
+        curr.execute(
+            '''
+            SELECT *
+            FROM artifacts a
+            JOIN versions v on a.version_id = v.id
+            JOIN packages p on v.package_id = p.id
+            WHERE p.registry_id = ?;
+            ''',
+            (pid, Registry.HUGGINGFACE)
+        )
+        processed = curr.fetchone() is not None
+
+    return processed
+
+
 def adoption(database, start, stop, batch_size=50):
     '''
     This function checks the adoption of signatures for packages from Hugging
@@ -161,6 +189,11 @@ def adoption(database, start, stop, batch_size=50):
 
         # Iterate over the packages
         for pid in batch:
+
+            # Check if the package is in the database
+            if already_processed(database, pid):
+                log.debug(f'Package {pid} already processed.')
+                continue
 
             # Get commit data
             commit_data = get_commit_data(packages[pid]['name'])
