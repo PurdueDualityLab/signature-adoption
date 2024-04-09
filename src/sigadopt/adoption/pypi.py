@@ -253,14 +253,14 @@ def adoption(database, download_dir, start, stop, batch_size=25):
         log.info(f'Checking batch {indx+1} of {len(batches)}.')
 
         batch = [list(a) for a in batch]
+        collected = []
 
         # Download all file-signature pairs
         for artifact in batch:
 
+            # Check if we have already checked this artifact
             if already_checked(database, artifact[0]):
                 continue
-
-            # Convert the artifact to a list so we can append the signature
 
             # Create url and local file name
             url = url_construction(
@@ -280,15 +280,16 @@ def adoption(database, download_dir, start, stop, batch_size=25):
 
             # Add the signature to the artifact
             artifact.append(sig_binary)
+            collected.append(artifact)
 
         # Insert the signatures
-        insert_signatures(database, batch)
+        insert_signatures(database, collected)
 
         # Check signatures for each artifact
-        check_artifacts(batch, download_dir, database)
+        check_artifacts(collected, download_dir, database)
 
         # Remove the files
-        for artifact in batch:
+        for artifact in collected:
             if not artifact[4]:
                 continue
             remove_file(download_dir / artifact[2])
