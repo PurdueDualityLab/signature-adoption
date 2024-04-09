@@ -205,6 +205,7 @@ def get_files(version_url):
 
     # Check to see if we got a response
     if not response:
+        log.warning(f'Failed to get files for {version_url}.')
         return None
 
     files = []
@@ -301,6 +302,11 @@ def adoption(database, download_dir, start, stop):
             f'{version[1].split(":")[1]}/' + \
             f'{version[3]}'
         files = get_files(version_url)
+
+        # Check if we have any files
+        if not files:
+            log.warning(f'Skipping {version[1]} {version[3]} due to no files.')
+            continue
 
         # create the artifact list
         artifacts = [
