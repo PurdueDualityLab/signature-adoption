@@ -128,7 +128,7 @@ def adoption(database, start, stop, batch_size=50):
                 signature = None
                 if json_data:
                     finder = (s for s in json_data[0]['SignedTags']
-                              if s['SignedTag'] == version['number'])
+                              if s['SignedTag'] == vname)
                     signature = next(finder, None)
 
                 status = SignatureStatus.GOOD if signature \
