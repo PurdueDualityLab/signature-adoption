@@ -19,7 +19,7 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 
-def pc_str(num, denom):
+def pc_str(num, denom=1, precision=1):
     '''
     This function is used to calculate the percentage of num/denom.
 
@@ -29,5 +29,6 @@ def pc_str(num, denom):
     returns: The percentage of num/denom as a string.
     '''
     if denom == 0:
-        return '0.00%'
-    return '{:.1f}%'.format(100 * num / denom)
+        return '0.' + '0'*precision + '%'
+    format_str = f'{{:.{precision}f}}%'
+    return format_str.format(100 * num / denom)

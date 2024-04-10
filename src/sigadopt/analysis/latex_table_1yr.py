@@ -3,6 +3,7 @@ latex_table_1yr.py: This script is used to generate a LaTeX table of the
 results from 2023.
 '''
 
+import json
 import json2latex
 import logging
 from sigadopt.util.number_things import human_format, pc_str
@@ -197,12 +198,13 @@ def sig_statuses(database, result):
                     result[registry][status + '_h'] = '0'
 
 
-def run(database, output):
+def run(database, output, out_json):
     '''
     This function generates a LaTeX table of the results.
 
     database: A database connection
     output: The path to write the LaTeX table to.
+    out_json: Whether to output the results as JSON.
     '''
 
     # Results dictionary
@@ -225,4 +227,7 @@ def run(database, output):
     # Write the data to a LaTeX table
     log.info(f'Writing LaTeX table to {output}')
     with open(output, 'w') as f:
-        json2latex.dump('datayr', result, f)
+        if out_json:
+            json.dump(result, f, indent=4)
+        else:
+            json2latex.dump('datayr', result, f)

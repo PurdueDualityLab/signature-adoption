@@ -2,6 +2,7 @@
 latex_table.py: This script is used to generate a LaTeX table of the results.
 '''
 
+import json
 import json2latex
 import logging
 from sigadopt.util.number_things import human_format, pc_str
@@ -130,7 +131,7 @@ def sig_statuses(database, result):
         # Query to get the count of each sig_status for each registry
         query = '''
             SELECT p.registry_id, s.status, count(s.id) as count
-            from sig_check s
+            FROM sig_check s
             JOIN artifacts a on a.id = s.artifact_id
             JOIN versions v on a.version_id = v.id
             JOIN packages p on v.package_id = p.id
@@ -186,12 +187,13 @@ def sig_statuses(database, result):
                     result[registry][status + '_h'] = '0'
 
 
-def run(database, output):
+def run(database, output, out_json):
     '''
     This function generates a LaTeX table of the results.
 
     database: A database connection
     output: The path to write the LaTeX table to.
+    out_json: Whether to output the results as JSON.
     '''
 
     # Results dictionary
@@ -214,4 +216,7 @@ def run(database, output):
     # Write the data to a LaTeX table
     log.info(f'Writing LaTeX table to {output}')
     with open(output, 'w') as f:
-        json2latex.dump('data', result, f)
+        if out_json:
+            json.dump(result, f, indent=4)
+        else:
+            json2latex.dump('data', result, f)

@@ -8,6 +8,9 @@ from sigadopt.analysis.latex_table import run as latex_table
 from sigadopt.analysis.latex_table_1yr import run as latex_table_1yr
 from sigadopt.analysis.plot_quantity import run as plot_quantity
 from sigadopt.analysis.plot_quality import run as plot_quality
+from sigadopt.analysis.plot_failures import run as plot_failures
+from sigadopt.analysis.plot_new_artifacts import run as plot_new_artifacts
+from sigadopt.analysis.metric import run as metric
 
 
 class Analysis:
@@ -30,13 +33,13 @@ class Analysis:
         '''
         This function generates a LaTeX table of the results.
         '''
-        latex_table(self.database, self.args.output)
+        latex_table(self.database, self.args.output, self.args.json)
 
     def latex_table_1yr(self):
         '''
         This function generates a LaTeX table of the results from 2023.
         '''
-        latex_table_1yr(self.database, self.args.output)
+        latex_table_1yr(self.database, self.args.output, self.args.json)
 
     def plot_quantity(self):
         '''
@@ -49,6 +52,27 @@ class Analysis:
         This function generates a plot of the quality of adoptions.
         '''
         plot_quality(self.database, self.args.output)
+
+    def plot_failures(self):
+        '''
+        This function generates a plot of the failures over time for a given
+        registry.
+        '''
+        plot_failures(self.database, self.args.output, self.args.registry)
+
+    def plot_new_artifacts(self):
+        '''
+        This function generates a plot of the failures over time for a given
+        registry.
+        '''
+        plot_new_artifacts(self.database, self.args.output, self.args.registry)
+
+    def metric(self):
+        '''
+        This function calculates the probability of signatures after the first
+        signature.
+        '''
+        metric(self.database, self.args.output, self.args.json)
 
     def run(self):
         '''
