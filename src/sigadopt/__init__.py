@@ -10,6 +10,7 @@ from sigadopt.util.files import path_create
 from sigadopt.packages import add_arguments as packages_add_arguments
 from sigadopt.filter import add_arguments as filter_add_arguments
 from sigadopt.adoption import add_arguments as adoption_add_arguments
+from sigadopt.analysis import add_arguments as analysis_add_arguments
 
 # Author information
 __author__ = 'Taylor R. Schorlemmer'
@@ -52,9 +53,9 @@ parser = argparse.ArgumentParser(
     description='This script checks the adoption of signatures for different '
     'registries. This occurs in multiple pipeline stages. Please use the '
     'appropriate subcommand for the stage you want to run. These stages '
-    'include: 1) getting a list of packages, 2) applying a pre-filter to the '
+    'include: 1) getting a list of packages, 2) applying a filter to the '
     'list of packages, 3) checking adoption of signatures for the list of '
-    'packages, 4) applying a post-filter to the list of packages, and 5) '
+    'packages, and 5) '
     'running a final analysis on the list of packages.'
 )
 
@@ -89,3 +90,4 @@ pipeline_stage_parser = parser.add_subparsers(
 packages_add_arguments(pipeline_stage_parser)
 filter_add_arguments(pipeline_stage_parser)
 adoption_add_arguments(pipeline_stage_parser)
+analysis_add_arguments(pipeline_stage_parser)
