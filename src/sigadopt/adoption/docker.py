@@ -33,6 +33,7 @@ def get_signatures(package_name):
 
     return json.loads(output.stdout), output.stderr.decode("utf-8")
 
+
 def get_versions(database, start, stop):
     '''
     This function gets a list of all versions in the start stop range for the
