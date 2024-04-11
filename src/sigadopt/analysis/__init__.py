@@ -270,6 +270,36 @@ def add_plot_quality(type_parser):
     )
 
 
+def add_plot_rsa(type_parser):
+    '''
+    This function plots the RSA data size over time.
+
+    type_parser: The subparser for the stage.
+    '''
+
+    func_parser = type_parser.add_parser(
+        'plot_rsa',
+        help='Plot the RSA data size over time.'
+    )
+
+    # Set the function to use in the stage class
+    func_parser.set_defaults(type_func=Analysis.plot_rsa)
+
+    # Add type specific arguments
+    func_parser.add_argument(
+        'registry',
+        type=lambda x: Registry[x.upper()],
+        help='The registry to query.'
+        f'Options: {",".join([r.name.lower() for r in Registry])}'
+    )
+    func_parser.add_argument(
+        'output',
+        metavar='PATH',
+        type=path_create,
+        help='The path to the output plot.'
+    )
+
+
 def add_plot_quantity(type_parser):
     '''
     This function plots the quantity of adoption over time.
@@ -338,3 +368,4 @@ def add_arguments(top_parser):
     add_metric(type_parser)
     add_anova(type_parser)
     add_ttest(type_parser)
+    add_plot_rsa(type_parser)

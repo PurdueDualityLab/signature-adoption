@@ -13,6 +13,7 @@ from sigadopt.analysis.plot_new_artifacts import run as plot_new_artifacts
 from sigadopt.analysis.metric import run as metric
 from sigadopt.analysis.anova import run as anova
 from sigadopt.analysis.ttest import run as ttest
+from sigadopt.analysis.plot_rsa import run as plot_rsa
 
 
 class Analysis:
@@ -30,6 +31,12 @@ class Analysis:
         self.log.debug('Initializing Analysis stage...')
         self.args = args
         self.log.debug(f'{self.args=}')
+
+    def plot_rsa(self):
+        '''
+        This function generates a plot of the RSA data size over time.
+        '''
+        plot_rsa(self.database, self.args.output, self.args.registry)
 
     def anova(self):
         '''
