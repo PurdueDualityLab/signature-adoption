@@ -11,6 +11,8 @@ from sigadopt.analysis.plot_quality import run as plot_quality
 from sigadopt.analysis.plot_failures import run as plot_failures
 from sigadopt.analysis.plot_new_artifacts import run as plot_new_artifacts
 from sigadopt.analysis.metric import run as metric
+from sigadopt.analysis.anova import run as anova
+from sigadopt.analysis.ttest import run as ttest
 
 
 class Analysis:
@@ -28,6 +30,25 @@ class Analysis:
         self.log.debug('Initializing Analysis stage...')
         self.args = args
         self.log.debug(f'{self.args=}')
+
+    def anova(self):
+        '''
+        This function computes the ANOVA for the adoption rates.
+        '''
+        anova(self.database, self.args.boxplot)
+
+    def ttest(self):
+        '''
+        This function computes the T-Test for the adoption rates.
+        '''
+        ttest(
+            self.database,
+            self.args.registry,
+            self.args.intervention,
+            self.args.span,
+            self.args.alternative,
+            self.args.output,
+        )
 
     def latex_table(self):
         '''

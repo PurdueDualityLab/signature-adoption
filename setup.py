@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 # Setup
 setup(
     name='sigadopt',
-    version='0.1',
+    version='0.2',
     description='Signature Adoption',
     author='Taylor R. Schorlemmer',
     packages=find_packages(where="src"),
@@ -22,7 +22,8 @@ setup(
         'google-cloud-bigquery',
         'beautifulsoup4',
         'GitPython',
-        'json2latex'
+        'json2latex',
+        'scipy',
     ],
     entry_points={
         'console_scripts': [
