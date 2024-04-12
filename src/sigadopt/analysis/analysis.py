@@ -14,7 +14,7 @@ from sigadopt.analysis.metric import run as metric_run
 from sigadopt.analysis.anova import run as anova_run
 from sigadopt.analysis.ttest import run as ttest_run
 from sigadopt.analysis.plot_rsa import run as plot_rsa_run
-
+from sigadopt.analysis.table_crypto import run as table_crypto_run
 
 class Analysis:
     '''
@@ -56,6 +56,12 @@ class Analysis:
             self.args.alternative,
             self.args.output,
         )
+
+    def table_crypto(self):
+        '''
+        This function generates a LaTeX table of the cryptographic data.
+        '''
+        table_crypto_run(self.database, self.args.output, self.args.json)
 
     def table_summary(self):
         '''
