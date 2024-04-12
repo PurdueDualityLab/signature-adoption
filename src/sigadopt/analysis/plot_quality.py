@@ -91,26 +91,28 @@ def run(database, output):
 # Plot the adoption rates over time
     log.info('Plotting adoption rates...')
     plt.plot(data['maven']['months'], data['maven']['adoption_rates'],
-             linestyle=':', label='Maven Central', linewidth=2)
+             label='Maven Central')
     plt.plot(data['docker']['months'], data['docker']['adoption_rates'],
-             linestyle='-.', label='Docker Hub', linewidth=2)
+             label='Docker Hub')
     plt.plot(data['huggingface']['months'], data['huggingface']['adoption_rates'],
-             linestyle='--', label='HuggingFace', linewidth=2)
+             label='HuggingFace')
     plt.plot(data['pypi']['months'], data['pypi']['adoption_rates'],
-             linestyle='-', label='PyPI', linewidth=2)
-    plt.axvline(x='2018-03', color='c', linestyle='--',
+             label='PyPI')
+    plt.axvline(x='2018-03', color='c', linestyle=':',
                 label='PyPI PGP De-emphasis')
     plt.axvline(x='2019-04', color='k', linestyle='-.',
                 label='Docker Hub Attack')
     plt.axvline(x='2019-09', color='m', linestyle=':',
                 label='Docker Hub Update')
-    plt.axvline(x='2023-05', color='y', linestyle='-',
+    plt.axvline(x='2021-12', color='tab:gray', linestyle='-.',
+                label='SolarWinds Attack')
+    plt.axvline(x='2023-05', color='y', linestyle=':',
                 label='PyPI PGP Removal')
     plt.xlabel('Month', fontsize=15)
     plt.ylabel('Signature Quality (% Good Signatures)', fontsize=15)
     plt.title('Quality of Signatures Over Time', fontsize=19)
-    plt.xticks(data['maven']['months'][::6], rotation=90, fontsize=11)
+    plt.xticks(data['maven']['months'][::4], rotation=90, fontsize=11)
     plt.yticks(fontsize=11)
     plt.tight_layout()
-    plt.legend(fontsize=11)
-    plt.savefig(output, dpi=300)
+    plt.legend(fontsize=10)
+    plt.savefig(output, dpi=600)

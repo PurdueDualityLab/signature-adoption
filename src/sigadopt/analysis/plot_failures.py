@@ -122,22 +122,22 @@ def run(database, output, registry_id):
     }
 
     plt.plot(data['months'], data['BAD_SIG'],
-             linewidth=2, linestyle='-', label='Bad Signature')
+             linestyle='-', label='Bad Signature')
     plt.plot(data['months'], data['EXP_SIG'],
-             linewidth=2, linestyle='-', label='Expired Signature')
+             linestyle='-', label='Expired Signature')
     plt.plot(data['months'], data['EXP_PUB'],
-             linewidth=2, linestyle='-', label='Expired Public Key')
+             linestyle='-', label='Expired Public Key')
     plt.plot(data['months'], data['NO_PUB'],
-             linewidth=2, linestyle='-', label='No Public Key')
+             linestyle='-', label='No Public Key')
     plt.plot(data['months'], data['REV_PUB'],
-             linewidth=2, linestyle='-', label='Revoked Public Key')
+             linestyle='-', label='Revoked Public Key')
     plt.plot(data['months'], data['BAD_PUB'],
-             linewidth=2, linestyle='-', label='Bad Public Key')
+             linestyle='-', label='Bad Public Key')
     plt.xlabel('Month', fontsize=15)
     plt.ylabel('Percent of Signatures', fontsize=15)
     plt.title(f'{titles[registry_id]} Failure Modes Over Time', fontsize=19)
-    plt.xticks(data['months'][::6], rotation=90, fontsize=11)
+    plt.xticks(data['months'][::4], rotation=90, fontsize=11)
     plt.yticks(fontsize=11)
     plt.tight_layout()
-    plt.legend(fontsize=11)
-    plt.savefig(output)
+    plt.legend(fontsize=10)
+    plt.savefig(output, dpi=600)
