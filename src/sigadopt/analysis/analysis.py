@@ -4,16 +4,16 @@ with data.
 '''
 import logging
 from sigadopt.util.database import connect_db
-from sigadopt.analysis.latex_table import run as latex_table
-from sigadopt.analysis.latex_table_1yr import run as latex_table_1yr
-from sigadopt.analysis.plot_quantity import run as plot_quantity
-from sigadopt.analysis.plot_quality import run as plot_quality
-from sigadopt.analysis.plot_failures import run as plot_failures
-from sigadopt.analysis.plot_new_artifacts import run as plot_new_artifacts
-from sigadopt.analysis.metric import run as metric
-from sigadopt.analysis.anova import run as anova
-from sigadopt.analysis.ttest import run as ttest
-from sigadopt.analysis.plot_rsa import run as plot_rsa
+from sigadopt.analysis.table_summary import run as table_summary_run
+from sigadopt.analysis.table_summary_1yr import run as table_summary_1yr_run
+from sigadopt.analysis.plot_quantity import run as plot_quantity_run
+from sigadopt.analysis.plot_quality import run as plot_quality_run
+from sigadopt.analysis.plot_failures import run as plot_failures_run
+from sigadopt.analysis.plot_new_artifacts import run as plot_new_artifacts_run
+from sigadopt.analysis.metric import run as metric_run
+from sigadopt.analysis.anova import run as anova_run
+from sigadopt.analysis.ttest import run as ttest_run
+from sigadopt.analysis.plot_rsa import run as plot_rsa_run
 
 
 class Analysis:
@@ -36,19 +36,19 @@ class Analysis:
         '''
         This function generates a plot of the RSA data size over time.
         '''
-        plot_rsa(self.database, self.args.output, self.args.registry)
+        plot_rsa_run(self.database, self.args.output, self.args.registry)
 
     def anova(self):
         '''
         This function computes the ANOVA for the adoption rates.
         '''
-        anova(self.database, self.args.boxplot)
+        anova_run(self.database, self.args.boxplot)
 
     def ttest(self):
         '''
         This function computes the T-Test for the adoption rates.
         '''
-        ttest(
+        ttest_run(
             self.database,
             self.args.registry,
             self.args.intervention,
@@ -57,50 +57,50 @@ class Analysis:
             self.args.output,
         )
 
-    def latex_table(self):
+    def table_summary(self):
         '''
         This function generates a LaTeX table of the results.
         '''
-        latex_table(self.database, self.args.output, self.args.json)
+        table_summary_run(self.database, self.args.output, self.args.json)
 
-    def latex_table_1yr(self):
+    def table_summary_1yr(self):
         '''
         This function generates a LaTeX table of the results from 2023.
         '''
-        latex_table_1yr(self.database, self.args.output, self.args.json)
+        table_summary_1yr_run(self.database, self.args.output, self.args.json)
 
     def plot_quantity(self):
         '''
         This function generates a plot of the quantity of adoptions.
         '''
-        plot_quantity(self.database, self.args.output)
+        plot_quantity_run(self.database, self.args.output)
 
     def plot_quality(self):
         '''
         This function generates a plot of the quality of adoptions.
         '''
-        plot_quality(self.database, self.args.output)
+        plot_quality_run(self.database, self.args.output)
 
     def plot_failures(self):
         '''
         This function generates a plot of the failures over time for a given
         registry.
         '''
-        plot_failures(self.database, self.args.output, self.args.registry)
+        plot_failures_run(self.database, self.args.output, self.args.registry)
 
     def plot_new_artifacts(self):
         '''
         This function generates a plot of the failures over time for a given
         registry.
         '''
-        plot_new_artifacts(self.database, self.args.output, self.args.registry)
+        plot_new_artifacts_run(self.database, self.args.output, self.args.registry)
 
     def metric(self):
         '''
         This function calculates the probability of signatures after the first
         signature.
         '''
-        metric(self.database, self.args.output, self.args.json)
+        metric_run(self.database, self.args.output, self.args.json)
 
     def run(self):
         '''

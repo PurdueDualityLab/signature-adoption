@@ -41,6 +41,7 @@ def run(database, output, registry):
             join packages p on v.package_id = p.id
             where l.algo = 1
             and p.registry_id = ?
+            and date(l.created, 'unixepoch') between '2015-01-01' and '2023-12-31'
             group by month, data_up
             ''',
             (registry,)
@@ -50,12 +51,19 @@ def run(database, output, registry):
 
     log.info('Doing some analysis...')
     months = {}
-    data_ups = set()
+    data_ups = [
+        8192,
+        4608,
+        4096,
+        3072,
+        2048,
+        1536,
+        1024,
+    ]
     for month, data_up, occurrences in results:
         if month not in months:
             months[month] = {}
         months[month][data_up] = occurrences
-        data_ups.add(data_up)
 
     # calculate percentages
     for month in months:
@@ -84,10 +92,11 @@ def run(database, output, registry):
 
     plt.xlabel('Month', fontsize=15)
     plt.ylabel('Percent of RSA Signatures', fontsize=15)
-    plt.title(f'RSA Data Size Over Time on {titles[registry]}', fontsize=19)
-    plt.xticks([month for month in months][::6],
+    plt.title(f'RSA Key Length on {titles[registry]}', fontsize=19)
+    plt.xticks([month for month in months][::4],
                rotation=90, fontsize=11)
     plt.yticks(fontsize=11)
     plt.tight_layout()
     plt.legend(fontsize=10)
+    plt.gca().set_ylim(top=100)
     plt.savefig(output, dpi=300)

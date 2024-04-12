@@ -124,7 +124,7 @@ def add_metric(type_parser):
     )
 
 
-def add_latex_table(type_parser):
+def add_table_summary(type_parser):
     '''
     This function adds the LaTeX table subparser to the registry parser.
 
@@ -132,12 +132,12 @@ def add_latex_table(type_parser):
     '''
 
     func_parser = type_parser.add_parser(
-        'latex_table',
-        help='Create a LaTeX table of the results.'
+        'table_summary',
+        help='Create a LaTeX table of the summary results.'
     )
 
     # Set the function to use in the stage class
-    func_parser.set_defaults(type_func=Analysis.latex_table)
+    func_parser.set_defaults(type_func=Analysis.table_summary)
 
     # Add type specific arguments
     func_parser.add_argument(
@@ -154,7 +154,7 @@ def add_latex_table(type_parser):
     )
 
 
-def add_latex_table_1yr(type_parser):
+def add_table_summary_1yr(type_parser):
     '''
     This function adds the LaTeX table subparser to the registry parser.
 
@@ -162,12 +162,12 @@ def add_latex_table_1yr(type_parser):
     '''
 
     func_parser = type_parser.add_parser(
-        'latex_table_1yr',
+        'table_summary_1yr',
         help='Create a LaTeX table of the results from 2023.'
     )
 
     # Set the function to use in the stage class
-    func_parser.set_defaults(type_func=Analysis.latex_table_1yr)
+    func_parser.set_defaults(type_func=Analysis.table_summary_1yr)
 
     # Add type specific arguments
     func_parser.add_argument(
@@ -359,8 +359,8 @@ def add_arguments(top_parser):
     )
 
     # Add subparser specific arguments
-    add_latex_table(type_parser)
-    add_latex_table_1yr(type_parser)
+    add_table_summary(type_parser)
+    add_table_summary_1yr(type_parser)
     add_plot_quantity(type_parser)
     add_plot_quality(type_parser)
     add_plot_failures(type_parser)

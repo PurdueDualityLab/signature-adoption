@@ -1,6 +1,5 @@
 '''
-latex_table_1yr.py: This script is used to generate a LaTeX table of the
-results from 2023.
+table_summary.py: This script is used to generate a LaTeX table of the results.
 '''
 
 import json
@@ -32,8 +31,6 @@ def unit_count(database, result):
             FROM artifacts a
             JOIN versions v on a.version_id = v.id
             JOIN packages p on v.package_id = p.id
-            WHERE v.date between '2023-01-01' and '2023-12-31'
-                OR a.date between '2023-01-01' and '2023-12-31'
             GROUP BY p.registry_id
         '''
 
@@ -67,12 +64,9 @@ def version_count(database, result):
 
         # Query to count the number of versions in each registry
         query = '''
-            SELECT p.registry_id, COUNT(DISTINCT v.id) as count
-            FROM artifacts a
-            JOIN versions v on a.version_id = v.id
+            SELECT p.registry_id, COUNT(v.id) as count
+            FROM  versions v
             JOIN packages p on v.package_id = p.id
-            WHERE v.date between '2023-01-01' and '2023-12-31'
-                OR a.date between '2023-01-01' and '2023-12-31'
             GROUP BY p.registry_id
         '''
 
@@ -103,12 +97,8 @@ def package_count(database, result):
 
         # Query to count the number of versions in each registry
         query = '''
-            SELECT p.registry_id, COUNT(DISTINCT p.id) as count
-            FROM artifacts a
-            JOIN versions v on a.version_id = v.id
-            JOIN packages p on v.package_id = p.id
-            WHERE v.date between '2023-01-01' and '2023-12-31'
-                OR a.date between '2023-01-01' and '2023-12-31'
+            SELECT p.registry_id, COUNT(p.id) as count
+            FROM packages p
             GROUP BY p.registry_id
         '''
 
@@ -140,12 +130,10 @@ def sig_statuses(database, result):
         # Query to get the count of each sig_status for each registry
         query = '''
             SELECT p.registry_id, s.status, count(s.id) as count
-            from sig_check s
+            FROM sig_check s
             JOIN artifacts a on a.id = s.artifact_id
             JOIN versions v on a.version_id = v.id
             JOIN packages p on v.package_id = p.id
-            WHERE v.date between '2023-01-01' and '2023-12-31'
-                OR a.date between '2023-01-01' and '2023-12-31'
             GROUP BY p.registry_id, s.status
         '''
 
@@ -230,4 +218,4 @@ def run(database, output, out_json):
         if out_json:
             json.dump(result, f, indent=4)
         else:
-            json2latex.dump('datayr', result, f)
+            json2latex.dump('summary', result, f)
