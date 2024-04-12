@@ -124,6 +124,36 @@ def add_metric(type_parser):
     )
 
 
+def add_table_exp(type_parser):
+    '''
+    This function adds the expired key table subparser to the registry parser.
+
+    type_parser: The subparser for the stage.
+    '''
+
+    func_parser = type_parser.add_parser(
+        'table_exp',
+        help='Create a LaTeX table of the expired key results.'
+    )
+
+    # Set the function to use in the stage class
+    func_parser.set_defaults(type_func=Analysis.table_exp)
+
+    # Add type specific arguments
+    func_parser.add_argument(
+        'output',
+        metavar='PATH',
+        type=path_create,
+        help='The path to the output LaTeX file.'
+    )
+    func_parser.add_argument(
+        '--json',
+        '-j',
+        action='store_true',
+        help='Output the results as JSON instead of LaTeX.'
+    )
+
+
 def add_table_crypto(type_parser):
     '''
     This function adds the crypto table subparser to the registry parser.
@@ -400,3 +430,4 @@ def add_arguments(top_parser):
     add_ttest(type_parser)
     add_plot_rsa(type_parser)
     add_table_crypto(type_parser)
+    add_table_exp(type_parser)

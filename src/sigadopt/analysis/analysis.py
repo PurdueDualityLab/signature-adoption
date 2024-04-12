@@ -15,6 +15,7 @@ from sigadopt.analysis.anova import run as anova_run
 from sigadopt.analysis.ttest import run as ttest_run
 from sigadopt.analysis.plot_rsa import run as plot_rsa_run
 from sigadopt.analysis.table_crypto import run as table_crypto_run
+from sigadopt.analysis.table_exp import run as table_exp_run
 
 class Analysis:
     '''
@@ -62,6 +63,12 @@ class Analysis:
         This function generates a LaTeX table of the cryptographic data.
         '''
         table_crypto_run(self.database, self.args.output, self.args.json)
+
+    def table_exp(self):
+        '''
+        This function generates a LaTeX table of the expired key data.
+        '''
+        table_exp_run(self.database, self.args.output, self.args.json)
 
     def table_summary(self):
         '''

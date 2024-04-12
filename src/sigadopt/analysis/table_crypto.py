@@ -1,4 +1,3 @@
-
 '''
 table_crypto.py: This script is used to generate a LaTeX table for the
 cryptographic algorithms used in the signatures.
@@ -8,7 +7,7 @@ import json
 import json2latex
 import logging
 from sigadopt.util.number_things import human_format, pc_str
-from sigadopt.util.database import SignatureStatus, Registry
+from sigadopt.util.database import Registry
 
 # Set up logging
 log = logging.getLogger(__name__)
@@ -60,7 +59,6 @@ def count_algos(database, result, registry):
         # Organize the data in a dictionary
         log.info('Organizing the data...')
         for algo, count, percent in rows:
-            print(algo, count, percent)
             reg_text = Registry(registry).name.lower()
             if reg_text not in result:
                 result[reg_text] = {}
@@ -70,8 +68,6 @@ def count_algos(database, result, registry):
                 'human': human_format(count),
                 'percent': pc_str(percent, denom=100, precision=2),
             }
-
-        print(result[Registry(registry).name.lower()])
 
 
 def count_RSA_key(database, result, registry):
