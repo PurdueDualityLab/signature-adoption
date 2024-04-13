@@ -16,6 +16,8 @@ from sigadopt.analysis.ttest import run as ttest_run
 from sigadopt.analysis.plot_rsa import run as plot_rsa_run
 from sigadopt.analysis.table_crypto import run as table_crypto_run
 from sigadopt.analysis.table_exp import run as table_exp_run
+from sigadopt.analysis.table_stats import run as table_stats_run
+
 
 class Analysis:
     '''
@@ -57,6 +59,12 @@ class Analysis:
             self.args.alternative,
             self.args.output,
         )
+
+    def table_stats(self):
+        '''
+        This function generates a LaTeX table of the stats data.
+        '''
+        table_stats_run(self.database, self.args.output, self.args.json)
 
     def table_crypto(self):
         '''
@@ -106,7 +114,8 @@ class Analysis:
         This function generates a plot of the failures over time for a given
         registry.
         '''
-        plot_new_artifacts_run(self.database, self.args.output, self.args.registry)
+        plot_new_artifacts_run(
+            self.database, self.args.output, self.args.registry)
 
     def metric(self):
         '''

@@ -249,7 +249,7 @@ def run(database, output, out_json):
     find_upgrade_paths(database, Registry.MAVEN, maven_dates, result)
     find_upgrade_paths(database, Registry.PYPI, pypi_dates, result)
 
-    print(json.dumps(result, indent=4))
+    # print(json.dumps(result, indent=4))
     # Write the data to a LaTeX table
     log.info(f'Writing LaTeX table to {output}')
     with open(output, 'w') as f:

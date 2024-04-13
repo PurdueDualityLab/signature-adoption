@@ -29,7 +29,7 @@ def get_sample(database, registry_id):
         cursor = conn.cursor()
 
         # Get the time of the RSA
-        log.info(f'Running query for registry: {registry_id}')
+        log.info(f'Running anova query for registry: {registry_id}')
         cursor.execute(
             '''
             select

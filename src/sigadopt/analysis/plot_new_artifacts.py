@@ -93,17 +93,17 @@ def run(database, output, registry_id):
         Registry.HUGGINGFACE: 'Hugging Face'
     }
     plt.plot(data['months'], data['non_first'],
-             linewidth=2, linestyle='-', label='Non-First Versions')
+             linestyle='-', label='Non-First Versions')
     plt.plot(data['months'], data['first'],
-             linewidth=2, linestyle='--', label='First Versions')
+             linestyle='--', label='First Versions')
     plt.xlabel('Month', fontsize=15)
     plt.ylabel('Artifacts Published per Month', fontsize=15)
     plt.title(
         f'First vs. Non-First Artifacts on {titles[registry_id]}',
         fontsize=19
     )
-    plt.xticks(data['months'][::6], rotation=90, fontsize=11)
+    plt.xticks(data['months'][::4], rotation=90, fontsize=11)
     plt.yticks(fontsize=11)
     plt.tight_layout()
-    plt.legend(fontsize=11)
-    plt.savefig(output)
+    plt.legend(fontsize=10)
+    plt.savefig(output, dpi=300)

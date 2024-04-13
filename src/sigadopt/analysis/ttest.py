@@ -111,6 +111,8 @@ def run(database, registry, intervention, span, alternative, output):
     output: The path to save the histogram to. If None, no chart is generated.
     '''
 
+    result = {}
+
     # Create start and end dates
     start = intervention - timedelta(days=span)
     end = intervention + timedelta(days=span)
@@ -128,12 +130,12 @@ def run(database, registry, intervention, span, alternative, output):
         plt.savefig(output)
 
     # log.info basic statistics
-    log.info('Before')
-    log.info(f'Mean: {sum(before) / len(before)}')
-    log.info(f'Std: {scipy.stats.tstd(before)}')
-    log.info('After')
-    log.info(f'Mean: {sum(after) / len(after)}')
-    log.info(f'Std: {scipy.stats.tstd(after)}')
+    # log.info('Before')
+    # log.info(f'Mean: {sum(before) / len(before)}')
+    # log.info(f'Std: {scipy.stats.tstd(before)}')
+    # log.info('After')
+    # log.info(f'Mean: {sum(after) / len(after)}')
+    # log.info(f'Std: {scipy.stats.tstd(after)}')
 
     # Perform the t-test
     t_stat, p_value, = scipy.stats.ttest_ind(
@@ -145,4 +147,21 @@ def run(database, registry, intervention, span, alternative, output):
     # log.info the results
     log.info(f't-statistic: {t_stat}')
     log.info(f'p-value: {p_value}')
-    log.info(f'effect size: {calc_effect_size(t_stat, len(before), len(after))}')
+    effect_size = calc_effect_size(t_stat, len(before), len(after))
+    log.info(f'effect size: {effect_size}')
+
+    return {
+        't_statistic': float(t_stat),
+        'p_value': float(p_value),
+        'effect_size': '{:.3f}'.format(abs(effect_size)),
+        'before': {
+            'mean': sum(before) / len(before),
+            'std': scipy.stats.tstd(before),
+        },
+        'after': {
+            'mean': sum(after) / len(after),
+            'std': scipy.stats.tstd(after),
+        },
+    }
+
+
