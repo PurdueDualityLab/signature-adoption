@@ -3,13 +3,12 @@ THIS README IS NOT UP TO DATE
 # Table of Contents
 1. [Table of Contents](#table-of-contents)
 2. [Overview](#overview)
-3. [Directory Structure](#directory-structure)
-4. [Requirements](#requirements)
+3. [Requirements](#requirements)
     1. [PostgreSQL](#postgresql)
     2. [Big Query Authentication](#big-query-authentication)
     3. [HuggingFace Authentication](#huggingface-authentication)
     4. [Python](#python)
-5. [Running](#running)
+4. [Running](#running)
     1.  [Get Packages](#get-packages)
     2.  [Filter Packages](#filter-packages)
     3.  [Check Adoption](#check-adoption)
@@ -25,34 +24,8 @@ The order of operations for these scripts are as follows:
 1. Collect a list of all packages from a given registry
 2. Apply filters to that list of packages
 3. On the remaining packages, check the adoption of signatures
-4. Move the adoption data into a unified database.
-5. Perform analysis on the database.
+4. Perform analysis on the data.
 
-# Directory Structure
-```bash
-.
-├── bigquery.json
-├── hftoken.txt
-├── README.md
-├── setup.py
-├── data
-│   ├── adoption.db
-│   ├── docker
-│   ├── huggingface
-│   ├── maven
-│   ├── pypi
-│   └── results
-├── logs
-└── src
-    └── signature_adoption
-        ├── __init__.py
-        ├── adoption
-        ├── analysis
-        ├── database
-        ├── filter
-        ├── packages
-        └── util
-```
 # Requirements
 ## PostgreSQL
 The initial dataset generation script [packages.py](src/packages.py) interfaces with a PostgreSQL database with a data dump from [ecosyste.ms](https://packages.ecosyste.ms/open-data).
