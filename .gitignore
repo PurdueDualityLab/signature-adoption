@@ -13,6 +13,7 @@ data/
 logs/
 sub/
 env/
+build/
 *.egg-info/
 
 
