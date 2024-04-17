@@ -445,7 +445,7 @@ def add_arguments(top_parser):
         help='The type of analysis to perform.',
         dest='type',
         metavar='TYPE',
-        # required=True
+        required=True
     )
 
     # Add subparser specific arguments
