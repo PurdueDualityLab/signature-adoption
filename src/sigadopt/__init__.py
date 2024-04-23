@@ -85,7 +85,7 @@ pipeline_stage_parser = parser.add_subparsers(
     description='which stage of the pipeline to run',
     help='additional help',
     metavar='STAGE',
-    # required=True,
+    required=True,
 )
 packages_add_arguments(pipeline_stage_parser)
 filter_add_arguments(pipeline_stage_parser)

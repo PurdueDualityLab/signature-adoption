@@ -155,7 +155,7 @@ def add_arguments(top_parser):
         help='The registry to check adoption on.',
         dest='registry',
         metavar='REGISTRY',
-        # required=True
+        required=True
     )
 
     # Add subparser specific arguments

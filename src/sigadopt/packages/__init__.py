@@ -194,7 +194,7 @@ def add_arguments(top_parser):
         help='The registry to get a list of packages from.',
         dest='registry',
         metavar='REGISTRY',
-        # required=True
+        required=True
     )
 
     # Add subparser specific arguments
