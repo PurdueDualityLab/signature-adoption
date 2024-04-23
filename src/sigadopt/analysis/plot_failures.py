@@ -128,7 +128,7 @@ def run(database, output, registry_id):
     plt.plot(data['months'], data['EXP_PUB'],
              linestyle='-', label='Expired Public Key')
     plt.plot(data['months'], data['NO_PUB'],
-             linestyle='-', label='No Public Key')
+             linestyle='-', label='Missing Public Key')
     plt.plot(data['months'], data['REV_PUB'],
              linestyle='-', label='Revoked Public Key')
     plt.plot(data['months'], data['BAD_PUB'],

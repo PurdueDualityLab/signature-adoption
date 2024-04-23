@@ -76,15 +76,15 @@ def run(database, output, out_json=False):
             },
         'docker_hack':
             {
-                'pypi': ttest_run(database, Registry.PYPI,     datetime.strptime('2019-04-15', '%Y-%m-%d'), 180, 'greater', None),
-                'maven': ttest_run(database, Registry.MAVEN,   datetime.strptime('2019-04-15', '%Y-%m-%d'), 180, 'greater', None),
-                'docker': ttest_run(database, Registry.DOCKER, datetime.strptime('2019-04-15', '%Y-%m-%d'), 180, 'greater', None),
+                'pypi': ttest_run(database, Registry.PYPI,     datetime.strptime('2019-04-25', '%Y-%m-%d'), 180, 'less', None),
+                'maven': ttest_run(database, Registry.MAVEN,   datetime.strptime('2019-04-25', '%Y-%m-%d'), 180, 'less', None),
+                'docker': ttest_run(database, Registry.DOCKER, datetime.strptime('2019-04-25', '%Y-%m-%d'), 180, 'less', None),
             },
         'solarwinds':
             {
-                'pypi': ttest_run(database, Registry.PYPI,      datetime.strptime('2021-12-14', '%Y-%m-%d'), 180, 'greater', None),
-                'maven': ttest_run(database, Registry.MAVEN,    datetime.strptime('2021-12-14', '%Y-%m-%d'), 180, 'greater', None),
-                'docker': ttest_run(database, Registry.DOCKER,  datetime.strptime('2021-12-14', '%Y-%m-%d'), 180, 'greater', None),
+                'pypi': ttest_run(database, Registry.PYPI,      datetime.strptime('2021-12-14', '%Y-%m-%d'), 180, 'less', None),
+                'maven': ttest_run(database, Registry.MAVEN,    datetime.strptime('2021-12-14', '%Y-%m-%d'), 180, 'less', None),
+                'docker': ttest_run(database, Registry.DOCKER,  datetime.strptime('2021-12-14', '%Y-%m-%d'), 180, 'less', None),
             },
 
     }
