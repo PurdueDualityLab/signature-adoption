@@ -133,6 +133,99 @@ Using the JSON option will generate a JSON file with more readable output.
 This tool creates a database with a series of relational tables.
 These tables include `registries`, `packages`, `versions`, `artifacts`, `sig_status`, `signatures`, `sig_check`, `list_packets`, and `pgp_keys`.
 This section describes the contents of each table. 
+For more information on how the database is structured, see the [database](src/sigadopt/utils/database.py) utility file.
+
+## Registries
+This table contains the registries that are being analyzed.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `name`: The name of the registry.
+
+## Packages
+This table contains the packages that are being analyzed.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `name`: The name of the package.
+- `registry_id`: The foreign key to the registry table.
+- `versions_count`: The number of versions for the package.
+- `latest_release_date`: The date of the latest release.
+- `first_release_date`: The date of the first release.
+- `downloads`: The number of downloads for the package.
+- `downloads_period`: The period of downloads for the package.
+
+## Versions
+This table contains the versions of the packages that are being analyzed.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `package_id`: The foreign key to the package table.
+- `name`: The name of the version.
+- `date`: The date of the version.
+
+## Artifacts
+This table contains the artifacts of the packages that are being analyzed.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `version_id`: The foreign key to the version table.
+- `name`: The name of the artifact.
+- `type`: The type of the artifact.
+- `has_sig`: A boolean indicating if the artifact has a signature.
+- `digest`: The digest of the artifact.
+- `date`: The date the artifact was created.
+- `extensions`: The associated file extensions.
+
+## Sig_Status
+This table contains the status of the signatures for the packages that are being analyzed.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `name`: The name of the signature status.
+
+These statuses include: 
+- `GOOD`: The signature is valid.
+- `NO_SIG`: The artifact has no signature.
+- `BAD_SIG`: The signature is invalid.
+- `EXP_SIG`: The signature is expired.
+- `EXP_PUB`: The public key is expired.
+- `NO_PUB`: The public key is missing.
+- `REV_PUB`: The public key is revoked.
+- `BAD_PUB`: The public key is invalid.
+- `OTHER`: Other issues with the signature.
+
+## Signatures
+This table contains the signatures for the packages that are being analyzed.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `artifact_id`: The foreign key to the artifact table.
+- `type`: The type of the signature.
+- `raw`: The raw signature.
+
+## Sig_Check
+This table contains the results of the signature checks for the packages that are being analyzed.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `artifact_id`: The foreign key to the artifact table.
+- `status`: The foreign key to the sig_status table.
+- `raw`: The raw signature check output.
+
+## List_Packets
+This table contains information about PGP signatures.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `signature_id`: The foreign key to the signatures table.
+- `algo`: The algorithm used for the signature.
+- `digest_algo`: The algorithm used for the digest.
+- `data`: The number of bits in the signature (key length).
+- `key_id`: The key id of the signature.
+- `created`: The date the signature was created.
+- `expires`: The date the signature expires.
+- `raw`: The raw output of the `gpg --list-packets` command.
+
+## PGP_Keys
+This table contains information about PGP keys.
+The table has the following columns:
+- `id`: The primary key for the table.
+- `key_id`: The key id of the key.
+- `keyserver`: The keyserver the key was found on.
+- `raw`: The raw output of the `gpg --list-keys` and `gpg --recv-keys` commands.
 
 
 # Citation
