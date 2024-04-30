@@ -10,6 +10,7 @@
     2.  [Filter Packages](#filter-packages)
     3.  [Check Adoption](#check-adoption)
     4.  [Analysis](#analysis)
+5. [Database Schema](#database-schema)
 5. [Citation](#citation)
 6. [Data Availability](#data-availability)
 
@@ -128,9 +129,20 @@ Note that the table commands are intended to generate LaTeX commands for integra
 Using the JSON option will generate a JSON file with more readable output.
 
 
+# Database Schema
+This tool creates a database with a series of relational tables.
+These tables include `registries`, `packages`, `versions`, `artifacts`, `sig_status`, `signatures`, `sig_check`, `list_packets`, and `pgp_keys`.
+This section describes the contents of each table. 
+
+
 # Citation
 This repository was used to collect signature adoption data for a paper published in IEEE S&P.
 Please cite as:
+
+> T. R. Schorlemmer, K. G. Kalu, L. Chigges, *et al.*, “Signing in four public software package registries: Quantity, quality, and influencing factors,” in *2024 IEEE Symposium on Security and Privacy (SP)*, Los Alamitos, CA, USA: IEEE Computer Society, May 2024.
+
+
+Or use the following bibtex entry:
 ```bibtex
 @inproceedings{ieee_sp_2024_signing,
     author = {T. R. Schorlemmer and K. G. Kalu and L. Chigges and K. Ko and E.
