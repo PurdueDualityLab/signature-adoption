@@ -4,12 +4,13 @@
 3. [Requirements](#requirements)
     1. [PostgreSQL](#postgresql)
     2. [Big Query Authentication](#big-query-authentication)
-    3. [Python](#python)
+    3. [Install](#install)
 4. [Running](#running)
     1.  [Get Packages](#get-packages)
     2.  [Filter Packages](#filter-packages)
     3.  [Check Adoption](#check-adoption)
     4.  [Analysis](#analysis)
+5. [Citation](#citation)
 
 # Overview
 Tools for verifying signatures on PyPI, Docker Hub, Maven Central, and Hugging Face.
@@ -125,4 +126,21 @@ sigadopt analysis <database> <analysis_type>
 Note that the table commands are intended to generate LaTeX commands for integration into a paper.
 Using the JSON option will generate a JSON file with more readable output.
 
+
+# Citation
+This repository was used to collect signature adoption data for a paper published in IEEE S&P.
+Please cite as:
+```bibtex
+@inproceedings{ieee_sp_2024_signing,
+    author = {T. R. Schorlemmer and K. G. Kalu and L. Chigges and K. Ko and E.
+              Ishgair and S. Bagchi and S. Torres-Arias and J. C. Davis},
+    booktitle = {2024 IEEE Symposium on Security and Privacy (SP)},
+    title = {Signing in Four Public Software Package Registries: Quantity,
+             Quality, and Influencing Factors},
+    year = {2024},
+    publisher = {IEEE Computer Society},
+    address = {Los Alamitos, CA, USA},
+    month = {may},
+}
+```
 
