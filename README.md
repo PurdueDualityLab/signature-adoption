@@ -11,6 +11,7 @@
     3.  [Check Adoption](#check-adoption)
     4.  [Analysis](#analysis)
 5. [Citation](#citation)
+6. [Data Availability](#data-availability)
 
 # Overview
 Tools for verifying signatures on PyPI, Docker Hub, Maven Central, and Hugging Face.
@@ -144,3 +145,7 @@ Please cite as:
 }
 ```
 
+# Data Availability
+The final database used for our paper is available at https://zenodo.org/records/10988566.
+This database was created by collecting packages, filtering, and checking adoption.
+We used this database to run the analysis portion of our pipeline.
